@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-
 import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
 
 export interface Passage {
-  TextContent: string,
+  TextContent: string,    // is raw string from HTML. will be converted in PassageBox
+  JournalFlags?:string[], // containts flags to set inside the journal
+  TextTags?:{
+
+    //TextContent label: use double square brackets: [[RAW_TEXT](tag1)]
+    //json: "tag1": {css style object}
+  },
+
   ImageContent?: string,
   Actions: {
     IDs: string[],
@@ -21,10 +27,12 @@ const BLANK_PASSAGE: Passage = {
 
 function App() {
   /**
-   * TODO
-   * Passage Lockout: scrolling up currently allows you to re click old options. Lock in options and never let go.
+   * TODO:
+   * Passage Event System
    * Journal Flags
    * Text Flair Support
+   * 
+   * Newline Support. Need new text processor. wait im working on that right now with text flair support
    */
 
   const [allPassages, setAllPassages] = useState<Map<string, Passage>>(new Map<string, Passage>())
@@ -39,8 +47,6 @@ function App() {
       try {
         const result = e.target?.result as string;
         const json = JSON.parse(result)
-        // console.log(json);
-
         const allPassages = new Map<string, Passage>()
         //DO STUFF with my JSON
         Object.entries(json).forEach((id_passage_pair) => {
