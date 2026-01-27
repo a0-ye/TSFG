@@ -1,14 +1,14 @@
 {
+    "__TextTags": {
+        "t1": {
+            "color": "yellow"
+        },
+        "t2": {
+            "backgroundColor": "green"
+        }
+    },
     "entry": {
         "TextContent": "Hello Entry Point. Sample text, and the [[another](tagID)] text \n test \\ test hello \n\nThe forest is [[super big](t1)] and [[dark](t2)]",
-        "TextTags": {
-            "t1": {
-                "color": "yellow"
-            },
-            "t2": {
-                "backgroundColor": "green"
-            }
-        },
         "Actions": {
             "1": {
                 "TextContent": "ok hello entry point",

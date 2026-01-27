@@ -5,6 +5,7 @@ import TextContent from "../TextContent/TextContent"
 interface PassageBoxProps {
     passageData: Passage,
     addPassage: Function,
+    textTagMap: Map<string, Object>,
     index: number,
 }
 
@@ -20,12 +21,12 @@ export default function PassageBox(props: PassageBoxProps) {
             <div>DEBUG DUPLICATE: {passageData.TextContent}</div>
             <TextContent
                 raw={passageData.TextContent}
-                tags={passageData.TextTags}
+                textTagMap={props.textTagMap}
             ></TextContent>
             <div style={{ position: 'absolute', bottom: '0%' }}>
                 {
                     Object.keys(passageData.Actions).map((id, index) => {
-                        const detail:ActionDetail = passageData.Actions[id]
+                        const detail: ActionDetail = passageData.Actions[id]
                         return <button
                             style={{ backgroundColor: choiceIndex == index ? '#7e8f20ff' : (lockoutChoices ? '#70707052' : "auto"), pointerEvents: lockoutChoices ? "none" : 'auto' }}
                             onClick={() => {
@@ -33,21 +34,12 @@ export default function PassageBox(props: PassageBoxProps) {
                                 setChoiceIndex(index)
                                 addPassage(id)
                             }}>
-                                <TextContent
-                                    raw={detail.TextContent}
-                                    tags={passageData.TextTags}
-                                ></TextContent>
-                            </button>
+                            <TextContent
+                                raw={detail.TextContent}
+                                textTagMap={props.textTagMap}
+                            ></TextContent>
+                        </button>
                     })
-                    // passageData.Actions.IDs.map((id, index) => (
-                    //     <button
-                    //         style={{ backgroundColor: choiceIndex == index ? '#7e8f20ff' : (lockoutChoices ? '#70707052' : "auto"), pointerEvents: lockoutChoices ? "none" : 'auto' }}
-                    //         onClick={() => {
-                    //             setLockoutChoices(true)
-                    //             setChoiceIndex(index)
-                    //             addPassage(id)
-                    //         }}>{passageData.Actions.TextContent[index]}</button>
-                    // ))
                 }
             </div>
         </div>

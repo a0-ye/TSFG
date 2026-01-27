@@ -5,7 +5,8 @@ import type { ReactElement } from "react";
  */
 interface TextContentProps {
     raw: string,
-    tags: Object | undefined
+    textTagMap: Map<string, Object>,
+
 }
 
 /**
@@ -18,14 +19,11 @@ interface TextContentProps {
  */
 export default function TextContent(props: TextContentProps) {
     const raw = props.raw
-    const tags = props.tags // should be an object as many tag:cssStyleObject
-    if (!tags) {
-        // return <span>{raw}</span> 
-    } // return when no tags DOES NOTHING FOR NOW
-    const tagMap = new Map<string, Object>()
-    Object.entries(tags ?? {}).forEach(([key, value]) => {
-        tagMap.set(key, value as Object)
-    })
+    const textTagMap = props.textTagMap // should be an object as many tag:cssStyleObject
+    if (!textTagMap) {
+        return <span>{raw}</span> 
+    }
+
 
     const splitRaw = raw.split(/(\[\[.*?\]\(.*?\)])/).filter(Boolean);
     const divList: ReactElement[] = []
@@ -37,7 +35,7 @@ export default function TextContent(props: TextContentProps) {
             divList.push(
                 <span
                     key={idx}
-                    style={{whiteSpace:'pre-wrap', ...tagMap.get(content_tag_pair[1])}}
+                    style={{ whiteSpace: 'pre-wrap', ...textTagMap.get(content_tag_pair[1]) }}
                 >{content_tag_pair[0]}</span>
             )
         } else {

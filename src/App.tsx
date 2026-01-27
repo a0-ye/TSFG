@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
-import TextContent from './components/TextContent/TextContent'
 
 export interface ActionDetail {
   TextContent: string,
   setFlags?: string[],
-  defaultFlag?:boolean,
+  defaultFlag?: boolean,
   //more stuff here
 }
 
@@ -17,16 +16,11 @@ export interface Passage {
 
   ImageContent?: string,
   Actions: Record<string, ActionDetail>
-  // {
-  //   IDs: string[],
-  //   TextContent: string[],
-  //   setFlags:string[]
-  // }
 }
 const BLANK_PASSAGE: Passage = {
   TextContent: 'BLANK_PASSAGE',
   Actions: {
-    "entry":{TextContent:'BLANK_PASSAGE_TEXT. LOOP TO ENTRY'}
+    "entry": { TextContent: 'BLANK_PASSAGE_TEXT. LOOP TO ENTRY' }
   }
 }
 
@@ -38,6 +32,7 @@ function App() {
    */
 
   const [allPassages, setAllPassages] = useState<Map<string, Passage>>(new Map<string, Passage>())
+  const [textTagMap, setTextTagMap] = useState<Map<string,Object>>(new Map<string, Object>())
   const [displayedPassages, setDisplayedPassages] = useState<Passage[]>([])
   const [fileLoaded, setFileLoaded] = useState(false)
 
@@ -52,7 +47,7 @@ function App() {
    * If we write journal entries for goblin1, goblin2, goblin3, in the journal, we should see those entries populate the journal.
    * Because buttlicker has no journal entry, nothing will show up and nothing will happen
    */
-  const [journalFlags, setJournalFlags] = useState({})
+  // const [journalFlags, setJournalFlags] = useState({})
 
   const loadPassageJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -65,6 +60,17 @@ function App() {
         const allPassages = new Map<string, Passage>()
         //DO STUFF with my JSON
         Object.entries(json).forEach((id_passage_pair) => {
+          if (id_passage_pair[0].startsWith('__')) {
+            /**
+             * Special Cases flagged by double underscore '__':
+             * __TextTags
+             */
+            const tagMap = new Map<string, Object>()
+            Object.entries(id_passage_pair[1] ?? {}).forEach(([key, value]) => {
+              tagMap.set(key, value as Object)
+            })
+            setTextTagMap(tagMap);
+          }
           const pid = id_passage_pair[0];
           const dat: Passage = id_passage_pair[1] as Passage;
           // console.log('pid:',pid, " dat:", dat);
@@ -126,7 +132,7 @@ function App() {
           {fileLoaded && <button onClick={() => { addPassage('entry') }}> START!!!</button>}
           {displayedPassages.map((passageData, index) => (
             <>
-              <PassageBox passageData={passageData} addPassage={addPassage} index={index}></PassageBox>
+              <PassageBox passageData={passageData} addPassage={addPassage} textTagMap={textTagMap} index={index} ></PassageBox>
             </>
           ))}
 
