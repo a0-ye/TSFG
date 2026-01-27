@@ -22,26 +22,30 @@ export default function TextContent(props: TextContentProps) {
     if (!tags) {
         // return <span>{raw}</span> 
     } // return when no tags DOES NOTHING FOR NOW
-    const tagMap = new Map<string,Object>()
+    const tagMap = new Map<string, Object>()
     Object.entries(tags ?? {}).forEach(([key, value]) => {
         tagMap.set(key, value as Object)
     })
 
     const splitRaw = raw.split(/(\[\[.*?\]\(.*?\)])/).filter(Boolean);
     const divList: ReactElement[] = []
-    splitRaw.forEach((str) => {
+    splitRaw.forEach((str, idx) => {
         if (str.startsWith('[[') && str.endsWith(']')) {
             const content_tag_pair = str.split(/\[\[(.*?)\]\((.*?)\)\]/).filter(Boolean)
             // separate into the raw text and the tagID
             console.log(content_tag_pair);
             divList.push(
                 <span
-                    style={tagMap.get(content_tag_pair[1])}
+                    key={idx}
+                    style={{whiteSpace:'pre-wrap', ...tagMap.get(content_tag_pair[1])}}
                 >{content_tag_pair[0]}</span>
             )
         } else {
             divList.push(
-                <span>{str}</span>
+                <span
+                    key={idx}
+                    style={{ whiteSpace: 'pre-wrap' }}
+                >{str}</span>
             )
         }
     })
