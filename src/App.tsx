@@ -1,43 +1,58 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
+import TextContent from './components/TextContent/TextContent'
+
+export interface ActionDetail {
+  TextContent: string,
+  setFlags?: string[],
+  defaultFlag?:boolean,
+  //more stuff here
+}
 
 export interface Passage {
-  TextContent: string,    // is raw string from HTML. will be converted in PassageBox
-  JournalFlags?:string[], // containts flags to set inside the journal
-  TextTags?:{
-
-    //TextContent label: use double square brackets: [[RAW_TEXT](tag1)]
-    //json: "tag1": {css style object}
-  },
+  TextContent: string,
+  JournalFlags?: string[],
+  TextTags?: {},
 
   ImageContent?: string,
-  Actions: {
-    IDs: string[],
-    TextContent: string[]
-  }
+  Actions: Record<string, ActionDetail>
+  // {
+  //   IDs: string[],
+  //   TextContent: string[],
+  //   setFlags:string[]
+  // }
 }
 const BLANK_PASSAGE: Passage = {
   TextContent: 'BLANK_PASSAGE',
   Actions: {
-    IDs: ['BLANK_ID'],
-    TextContent: ['BLANK_OPTION']
+    "entry":{TextContent:'BLANK_PASSAGE_TEXT. LOOP TO ENTRY'}
   }
 }
 
 function App() {
   /**
    * TODO:
-   * Passage Event System
+   * Passage Event System ? what does this even mean? Sound triggers. visual triggers. Timer triggers?
    * Journal Flags
-   * Text Flair Support
-   * 
-   * Newline Support. Need new text processor. wait im working on that right now with text flair support
    */
 
   const [allPassages, setAllPassages] = useState<Map<string, Passage>>(new Map<string, Passage>())
   const [displayedPassages, setDisplayedPassages] = useState<Passage[]>([])
   const [fileLoaded, setFileLoaded] = useState(false)
+
+
+  /**
+   * Main Game Logic:
+   * 
+   * Journal Flags are arbitrarily named flags/tags that get added to the global journalFlags object. These unlock journal entries in the journal IFF there exists an entry matching that flag
+   * Flags get added when an action is taken, thus 
+   * 
+   * e.g. flags: goblin1, goblin2, goblin3, buttlicker
+   * If we write journal entries for goblin1, goblin2, goblin3, in the journal, we should see those entries populate the journal.
+   * Because buttlicker has no journal entry, nothing will show up and nothing will happen
+   */
+  const [journalFlags, setJournalFlags] = useState({})
 
   const loadPassageJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
