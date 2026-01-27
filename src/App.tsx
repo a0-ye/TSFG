@@ -4,16 +4,13 @@ import PassageBox from './components/PassageBox/PassageBox'
 
 export interface ActionDetail {
   TextContent: string,
-  setFlags?: string[],
-  defaultFlag?: boolean,
-  //more stuff here
+  setFlags?: Record<string, number>,
+  // defaultFlag?: boolean,
 }
 
 export interface Passage {
   TextContent: string,
-  JournalFlags?: string[],
-  TextTags?: {},
-
+  TextTags?: Record<string, Object>,
   ImageContent?: string,
   Actions: Record<string, ActionDetail>
 }
@@ -32,7 +29,7 @@ function App() {
    */
 
   const [allPassages, setAllPassages] = useState<Map<string, Passage>>(new Map<string, Passage>())
-  const [textTagMap, setTextTagMap] = useState<Map<string,Object>>(new Map<string, Object>())
+  const [textTagMap, setTextTagMap] = useState<Map<string, Object>>(new Map<string, Object>())
   const [displayedPassages, setDisplayedPassages] = useState<Passage[]>([])
   const [fileLoaded, setFileLoaded] = useState(false)
 
@@ -47,7 +44,7 @@ function App() {
    * If we write journal entries for goblin1, goblin2, goblin3, in the journal, we should see those entries populate the journal.
    * Because buttlicker has no journal entry, nothing will show up and nothing will happen
    */
-  // const [journalFlags, setJournalFlags] = useState({})
+  const [journalFlags, setJournalFlags] = useState<Record<string, number>>({})
 
   const loadPassageJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -106,6 +103,13 @@ function App() {
   return (
     <>
       <input type='file' accept='.json' onChange={loadPassageJSON}></input>
+      <div style={{ position: 'fixed', left: '0%', width: 300, }}>
+        {Object.keys(journalFlags).map((key, idx) => {
+          return <p key={idx}>
+            {key} and {journalFlags[key]}
+          </p>
+        })}
+      </div>
       <div>
         <p>
           We're writing a visual novel. We also need a journal system
@@ -132,7 +136,7 @@ function App() {
           {fileLoaded && <button onClick={() => { addPassage('entry') }}> START!!!</button>}
           {displayedPassages.map((passageData, index) => (
             <>
-              <PassageBox passageData={passageData} addPassage={addPassage} textTagMap={textTagMap} index={index} ></PassageBox>
+              <PassageBox passageData={passageData} addPassage={addPassage} setJournalFlags={setJournalFlags} textTagMap={textTagMap} index={index} ></PassageBox>
             </>
           ))}
 

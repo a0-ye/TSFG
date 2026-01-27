@@ -1,103 +1,106 @@
 {
+    "__TextTags": {
+        "t1": {
+            "color": "yellow"
+        },
+        "t2": {
+            "backgroundColor": "green"
+        }
+    },
     "entry": {
-        "TextContent": "Hello Entry Point TEST 1tgrsegsefgdfsfdgs",
+        "TextContent": "Hello Entry Point. Sample text, and the [[another](tagID)] text \n test \\ test hello \n\nThe forest is [[super big](t1)] and [[dark](t2)]",
         "Actions": {
-            "IDs": [
-                "1"
-            ],
-            "TextContent": [
-                "ok hello entry point"
-            ]
+            "1": {
+                "TextContent": "ok hello entry point",
+                "setFlags": {
+                    "allbright": 0
+                }
+            }
         }
     },
     "1": {
         "TextContent": "Welcome to the first paragraph",
         "Actions": {
-            "IDs": [
-                "2"
-            ],
-            "TextContent": [
-                "ok thank you lets move on."
-            ]
+            "2": {
+                "TextContent": "ok thank you lets move on.",
+                "setFlags": {
+                    "twine": 5135
+                }
+            }
         }
     },
     "2": {
         "TextContent": "The second follows naturally",
         "Actions": {
-            "IDs": [
-                "3"
-            ],
-            "TextContent": [
-                "What comes after 2?"
-            ]
+            "3": {
+                "TextContent": "What comes after 2?",
+                "setFlags": {
+                    "gorbus": -5
+                }
+            }
         }
     },
     "3": {
         "TextContent": "The third! We also have a branching path",
         "Actions": {
-            "IDs": [
-                "4",
-                "5"
-            ],
-            "TextContent": [
-                "Go down the id 4 path",
-                "go down the 5 path. its also an id"
-            ]
+            "4": {
+                "TextContent": "Go down the id 4 path",
+                "setFlags": {
+                    "flag4": 444
+                }
+            },
+            "5": {
+                "TextContent": "go down the 5 path. its also an id",
+                "setFlags": {
+                    "flag5": 1055501
+                }
+            }
         }
     },
     "4": {
         "TextContent": "this is 4. good work",
         "Actions": {
-            "IDs": [
-                "6"
-            ],
-            "TextContent": [
-                "thanks. ill move on now"
-            ]
+            "6": {
+                "TextContent": "thanks. ill move on now",
+                "setFlags": {
+                    "4to6": 46
+                }
+            }
         }
     },
     "5": {
         "TextContent": "This is 5 and NOT 4. that was a choice",
         "Actions": {
-            "IDs": [
-                "6"
-            ],
-            "TextContent": [
-                "okay. lets see what is next"
-            ]
+            "6": {
+                "TextContent": "okay. lets see what is next",
+                "setFlags": {
+                    "5to6": 56
+                }
+            }
         }
     },
     "6": {
         "TextContent": "All roads lead to 6",
         "Actions": {
-            "IDs": [
-                "7"
-            ],
-            "TextContent": [
-                "SEVEN. SEVEN. SEVEN."
-            ]
+            "7": {
+                "TextContent": "SEVEN. SEVEN. SEVEN."
+            }
         }
     },
     "7": {
         "TextContent": "All roads lead to 67 (this is 7)",
         "Actions": {
-            "IDs": [
-                "8"
-            ],
-            "TextContent": [
-                "sorry about that... ill leave now"
-            ]
+            "8": {
+                "TextContent": "sorry about that... ill leave now"
+            }
         }
     },
     "8": {
         "TextContent": "End of the line",
         "Actions": {
-            "IDs": [
-                "entry"
-            ],
-            "TextContent": [
-                "cool. Lets go back to the entry point"
-            ]
+            "entry": {
+                "TextContent": "cool. Lets go back to the entry point"
+            }
         }
     }
 }

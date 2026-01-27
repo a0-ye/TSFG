@@ -5,6 +5,7 @@ import TextContent from "../TextContent/TextContent"
 interface PassageBoxProps {
     passageData: Passage,
     addPassage: Function,
+    setJournalFlags: Function,
     textTagMap: Map<string, Object>,
     index: number,
 }
@@ -13,6 +14,7 @@ interface PassageBoxProps {
 export default function PassageBox(props: PassageBoxProps) {
     const passageData = props.passageData
     const addPassage = props.addPassage
+    const setJournalFlags = props.setJournalFlags
     const [lockoutChoices, setLockoutChoices] = useState(false)
     const [choiceIndex, setChoiceIndex] = useState(Infinity)
     return <>
@@ -33,6 +35,9 @@ export default function PassageBox(props: PassageBoxProps) {
                                 setLockoutChoices(true)
                                 setChoiceIndex(index)
                                 addPassage(id)
+                                setJournalFlags((prevJournalFlags:Record<string,number>)=>{
+                                    return {...prevJournalFlags, ...detail.setFlags ?? {}}
+                                })
                             }}>
                             <TextContent
                                 raw={detail.TextContent}

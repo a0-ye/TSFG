@@ -2,12 +2,10 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
 import json
 
-
 ''' 
 DISCLAIMER:
     this tool was generated using Gemini. Not stress tested, only for ease of use.
     Will be doing a full rewrite with graph node editors.
-    
 '''
 class TSFGEditor:
     def __init__(self, root):
@@ -33,8 +31,8 @@ class TSFGEditor:
         self.act_list.grid(row=1, column=1, sticky="nsew", padx=5)
         self.act_list.bind('<<ListboxSelect>>', self.on_action_select)
 
-        # --- Column 2: Journal Flags (linked to selected action) ---
-        tk.Label(root, text="Flags for Action").grid(row=0, column=2)
+        # --- Column 2: Journal Flags (Key: Value) ---
+        tk.Label(root, text="Flags (Name: Val)").grid(row=0, column=2)
         self.flag_list = tk.Listbox(root, width=15)
         self.flag_list.grid(row=1, column=2, sticky="nsew", padx=5)
 
@@ -55,11 +53,16 @@ class TSFGEditor:
         btn_panel = tk.Frame(root)
         btn_panel.grid(row=2, column=3, sticky="e", padx=10)
         tk.Button(btn_panel, text="Load JSON", command=self.load_file).pack(side="left")
-        tk.Button(btn_panel, text="Add Passage", command=self.add_passage).pack(side="left")
-        tk.Button(btn_panel, text="Add Action", command=self.add_action).pack(side="left")
-        tk.Button(btn_panel, text="Add Flag", command=self.add_flag).pack(side="left")
+        tk.Button(btn_panel, text="Add Pass", command=self.add_passage).pack(side="left")
+        tk.Button(btn_panel, text="Add Act", command=self.add_action).pack(side="left")
+        
+        flag_btn_frame = tk.Frame(btn_panel)
+        flag_btn_frame.pack(side="left", padx=5)
+        tk.Button(flag_btn_frame, text="+Flag", command=self.add_flag).pack(side="top", fill="x")
+        tk.Button(flag_btn_frame, text="-Flag", command=self.remove_flag).pack(side="top", fill="x")
+
         tk.Button(btn_panel, text="SAVE", bg="#4CAF50", fg="white", command=self.save_current_text).pack(side="left", padx=10)
-        tk.Button(btn_panel, text="Export JSON", command=self.export_json).pack(side="left")
+        tk.Button(btn_panel, text="Export", command=self.export_json).pack(side="left")
 
     # --- Logic ---
     def on_passage_select(self, event):
@@ -78,7 +81,7 @@ class TSFGEditor:
         self.current_action_id = self.act_list.get(sel)
         self.current_global_tag = None
         action_data = self.data[self.current_passage_id]["Actions"][self.current_action_id]
-        self.update_text(action_data.get("TextContent", "")) # Note: using TextContent key per your JSON
+        self.update_text(action_data.get("TextContent", ""))
         self.refresh_flag_list()
 
     def on_global_tag_select(self, event):
@@ -92,8 +95,11 @@ class TSFGEditor:
     def save_current_text(self):
         txt = self.text_editor.get("1.0", "end-1c")
         if self.current_global_tag:
-            try: self.data["__TextTags"][self.current_global_tag] = json.loads(txt)
-            except: messagebox.showerror("Error", "Invalid JSON")
+            try: 
+                self.data["__TextTags"][self.current_global_tag] = json.loads(txt)
+            except: 
+                messagebox.showerror("Error", "Invalid JSON for TextTag")
+                return
         elif self.current_action_id:
             self.data[self.current_passage_id]["Actions"][self.current_action_id]["TextContent"] = txt
         elif self.current_passage_id:
@@ -108,22 +114,47 @@ class TSFGEditor:
 
     def refresh_flag_list(self):
         self.flag_list.delete(0, tk.END)
-        flags = self.data[self.current_passage_id]["Actions"][self.current_action_id].get("setFlags", [])
-        for f in flags:
-            self.flag_list.insert(tk.END, f)
+        # setFlags is now a Record<string, number>
+        flags = self.data[self.current_passage_id]["Actions"][self.current_action_id].get("setFlags", {})
+        for name, val in flags.items():
+            self.flag_list.insert(tk.END, f"{name}: {val}")
 
     def add_action(self):
         if not self.current_passage_id: return
         a_id = simpledialog.askstring("New Action", "Target Passage ID:")
         if a_id:
-            self.data[self.current_passage_id]["Actions"][a_id] = {"TextContent": "", "setFlags": []}
+            # Initialize with an empty dictionary for setFlags
+            self.data[self.current_passage_id]["Actions"][a_id] = {"TextContent": "", "setFlags": {}}
             self.refresh_action_list()
 
     def add_flag(self):
-        if not self.current_action_id: return
-        flag = simpledialog.askstring("New Flag", "Flag name:")
-        if flag:
-            self.data[self.current_passage_id]["Actions"][self.current_action_id]["setFlags"].append(flag)
+        if not self.current_action_id: 
+            messagebox.showwarning("Warning", "Select an Action first!")
+            return
+        
+        flag_name = simpledialog.askstring("New Flag", "Flag Name (string):")
+        if flag_name:
+            flag_val = simpledialog.askinteger("Flag Value", f"Value for '{flag_name}' (number):", initialvalue=1)
+            if flag_val is not None:
+                # Update the Record
+                action = self.data[self.current_passage_id]["Actions"][self.current_action_id]
+                if "setFlags" not in action or isinstance(action["setFlags"], list):
+                    action["setFlags"] = {}
+                
+                action["setFlags"][flag_name] = flag_val
+                self.refresh_flag_list()
+
+    def remove_flag(self):
+        sel = self.flag_list.curselection()
+        if not sel: return
+        
+        # Parse the name out of "Name: Val"
+        display_str = self.flag_list.get(sel)
+        flag_name = display_str.split(":")[0]
+        
+        action = self.data[self.current_passage_id]["Actions"][self.current_action_id]
+        if flag_name in action["setFlags"]:
+            del action["setFlags"][flag_name]
             self.refresh_flag_list()
 
     def update_text(self, content):
@@ -135,6 +166,13 @@ class TSFGEditor:
         if path:
             with open(path, 'r') as f:
                 self.data = json.load(f)
+            # Check and fix structure if it was an old list-based JSON
+            for p_id, p_val in self.data.items():
+                if p_id == "__TextTags": continue
+                for a_id, a_val in p_val.get("Actions", {}).items():
+                    if isinstance(a_val.get("setFlags"), list):
+                        a_val["setFlags"] = {k: 1 for k in a_val["setFlags"]}
+            
             self.pass_list.delete(0, tk.END)
             for p_id in sorted(self.data.keys()):
                 if p_id != "__TextTags": self.pass_list.insert(tk.END, p_id)
