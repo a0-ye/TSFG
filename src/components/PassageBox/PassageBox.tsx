@@ -1,6 +1,8 @@
 import { useState } from "react"
 import type { ActionDetail, Passage } from "../../App"
 import TextContent from "../TextContent/TextContent"
+import { motion } from "motion/react"
+
 
 interface PassageBoxProps {
     passageData: Passage,
@@ -18,8 +20,11 @@ export default function PassageBox(props: PassageBoxProps) {
     const [lockoutChoices, setLockoutChoices] = useState(false)
     const [choiceIndex, setChoiceIndex] = useState(Infinity)
     return <>
-
-        <div key={props.index} style={{ position: 'relative', margin: '50px', height: 500, border: 'solid 2px white' }}>
+        <motion.div key={props.index} style={{ position: 'relative', margin: '50px', height: 500, border: 'solid 2px white', backgroundColor:'#2e2c28ff'}}
+            initial={{opacity:0, y:-50      }}
+            animate={{opacity:1, y:0        }}
+            transition={{duration:0.5}}
+        >
             <div>DEBUG DUPLICATE: {passageData.TextContent}</div>
             <TextContent
                 raw={passageData.TextContent}
@@ -47,7 +52,7 @@ export default function PassageBox(props: PassageBoxProps) {
                     })
                 }
             </div>
-        </div>
+        </motion.div>
 
 
 

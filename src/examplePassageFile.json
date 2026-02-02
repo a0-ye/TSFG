@@ -81,5 +81,11 @@
                 "TextContent": "cool. Lets go back to the entry point"
             }
         }
+    },
+    "JE_Goblin": {
+        "0":"Default Text",
+        "1":"Flag is 1",
+        "thrumb":"Weird flag value but still acceptable"
     }
+
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
+import Journal from './components/Journal/Journal'
 
 export interface ActionDetail {
   TextContent: string,
@@ -14,6 +15,7 @@ export interface Passage {
   ImageContent?: string,
   Actions: Record<string, ActionDetail>
 }
+
 const BLANK_PASSAGE: Passage = {
   TextContent: 'BLANK_PASSAGE',
   Actions: {
@@ -21,15 +23,17 @@ const BLANK_PASSAGE: Passage = {
   }
 }
 
+
 function App() {
   /**
    * TODO:
-   * Passage Event System ? what does this even mean? Sound triggers. visual triggers. Timer triggers?
-   * Journal Flags
+   * Passage Event System ? what does this even mean? Sound triggers. visual triggers. Timer triggers? Events should be on Passage Load.
+   * replace Map usage with Record<T,T>()
    */
 
   const [allPassages, setAllPassages] = useState<Map<string, Passage>>(new Map<string, Passage>())
   const [textTagMap, setTextTagMap] = useState<Map<string, Object>>(new Map<string, Object>())
+  const [journalEntries, setJournalEntries] = useState<Record<string, Record<string, string>>>({})
   const [displayedPassages, setDisplayedPassages] = useState<Passage[]>([])
   const [fileLoaded, setFileLoaded] = useState(false)
 
@@ -46,6 +50,11 @@ function App() {
    */
   const [journalFlags, setJournalFlags] = useState<Record<string, number>>({})
 
+  /**
+   * if we ever make a custom file format (for bundling audio img etc, still use this function im sure we can select multiple files too.)
+   * 
+   * on that note, maybe we can make a resource map, e.g. "music.mp3" maps to the file music.mp3, and the config json for events simply tries to access resourcemap["music.mp3"]
+   */
   const loadPassageJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) { return; }
@@ -55,23 +64,32 @@ function App() {
         const result = e.target?.result as string;
         const json = JSON.parse(result)
         const allPassages = new Map<string, Passage>()
-        //DO STUFF with my JSON
-        Object.entries(json).forEach((id_passage_pair) => {
-          if (id_passage_pair[0].startsWith('__')) {
+        // Process the JSON
+
+        Object.entries(json).forEach((id_data_pair) => {
+          const id = id_data_pair[0]
+          const data = id_data_pair[1]
+          if (id.startsWith('__')) {
             /**
              * Special Cases flagged by double underscore '__':
              * __TextTags
              */
             const tagMap = new Map<string, Object>()
-            Object.entries(id_passage_pair[1] ?? {}).forEach(([key, value]) => {
+            Object.entries(data ?? {}).forEach(([key, value]) => {
               tagMap.set(key, value as Object)
             })
             setTextTagMap(tagMap);
+          } else if (id.startsWith('JE_')) {  // Journal Entries
+            // Process Journal Entry entries with structure id: {num:Text, num:Text, num:Text...}
+            setJournalEntries((prevJournalEntries) => {
+              const newJournalEntries = { ...prevJournalEntries }
+              newJournalEntries[id] = (data as Record<string, string>)
+              console.log('setting journal entries: ', newJournalEntries);
+              return newJournalEntries
+            })
+          } else {  // Otherwise treat as passage
+            allPassages.set(id, data as Passage)
           }
-          const pid = id_passage_pair[0];
-          const dat: Passage = id_passage_pair[1] as Passage;
-          // console.log('pid:',pid, " dat:", dat);
-          allPassages.set(pid, dat)
         })
 
         setAllPassages(allPassages)
@@ -103,13 +121,11 @@ function App() {
   return (
     <>
       <input type='file' accept='.json' onChange={loadPassageJSON}></input>
-      <div style={{ position: 'fixed', left: '0%', width: 300, }}>
-        {Object.keys(journalFlags).map((key, idx) => {
-          return <p key={idx}>
-            {key} and {journalFlags[key]}
-          </p>
-        })}
-      </div>
+      <Journal
+        journalFlags={journalFlags}
+        journalEntries={journalEntries}
+        textTagMap={textTagMap}
+        ></Journal>
       <div>
         <p>
           We're writing a visual novel. We also need a journal system

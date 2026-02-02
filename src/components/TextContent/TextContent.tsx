@@ -31,7 +31,7 @@ export default function TextContent(props: TextContentProps) {
         if (str.startsWith('[[') && str.endsWith(']')) {
             const content_tag_pair = str.split(/\[\[(.*?)\]\((.*?)\)\]/).filter(Boolean)
             // separate into the raw text and the tagID
-            console.log(content_tag_pair);
+            // console.log(content_tag_pair);
             divList.push(
                 <span
                     key={idx}

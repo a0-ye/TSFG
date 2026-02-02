@@ -13,7 +13,8 @@
             "1": {
                 "TextContent": "ok hello entry point",
                 "setFlags": {
-                    "allbright": 0
+                    "allbright": 0,
+                    "JE_Goblin": 1
                 }
             }
         }
@@ -102,5 +103,10 @@
                 "TextContent": "cool. Lets go back to the entry point"
             }
         }
+    },
+    "JE_Goblin": {
+        "0": "Default Text",
+        "1": "HELLO I am JE_Goblin at value 1. It works to display it seems!",
+        "thrumb": "Weird flag value but still acceptable"
     }
 }
