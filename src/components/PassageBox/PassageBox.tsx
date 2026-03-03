@@ -20,7 +20,7 @@ export default function PassageBox(props: PassageBoxProps) {
     const [lockoutChoices, setLockoutChoices] = useState(false)
     const [choiceIndex, setChoiceIndex] = useState(Infinity)
     return <>
-        <motion.div key={props.index} style={{ position: 'relative', margin: '50px', height: 500, border: 'solid 2px white', backgroundColor:'#2e2c28ff'}}
+        <motion.div key={props.index} style={{ position: 'relative', margin: '50px', height: 500, border: 'solid 2px white', backgroundColor:'#2e2c28'}}
             initial={{opacity:0, y:-50      }}
             animate={{opacity:1, y:0        }}
             transition={{duration:0.5}}

@@ -1,8 +1,15 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  /* max-width: 1280px; */
+  /* margin: 0 auto; */
+  /* padding: 2rem; */
   text-align: center;
+}
+
+
+.sideCol {
+  background-color:#949376ff;
+  border:solid 2px #00ff40ff;
+
 }
 
 .logo {

@@ -112,52 +112,59 @@ function App() {
   }
 
   const bottomRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  const jumpToBottom = () => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [displayedPassages]);
+  }
+  useEffect(jumpToBottom, [displayedPassages]);
+
+  useEffect(() => {
+    if (fileLoaded) {
+      addPassage('entry')
+    }
+  }, [fileLoaded])
 
   return (
     <>
-      <input type='file' accept='.json' onChange={loadPassageJSON}></input>
       <Journal
         journalFlags={journalFlags}
         journalEntries={journalEntries}
         textTagMap={textTagMap}
-        ></Journal>
-      <div>
-        <p>
-          We're writing a visual novel. We also need a journal system
-        </p>
-        <p>
-          Paragraphs:
-          holds paragraph content, image content, actions/options content.
-        </p>
+      ></Journal>
 
-        <p>
-          ## Block Text Display System
-          How large should each box be? Mobile friendly as well? Needs to be able to generate from the input text example file style.
-        </p>
+      <div id='triColSplit' style={{ display: 'grid', gridTemplateColumns: ' 15vw 70vw 15vw ' }}>
+        <div id='leftContent' className='sideCol' style={{}}></div>
+        <div id='centerContent'>
+          <div style={{ position: 'fixed', top: 0, right: 0 }}>
+            <button onClick={() => {
+              setAllPassages(new Map<string, Passage>())
+              setTextTagMap(new Map<string, Object>())
+              setJournalEntries({})
+              setDisplayedPassages([])
+              setFileLoaded(false)
+              // DOES NOT RESET THE JOURNAL. 
+            }}>Reset ALL</button>
+            <button onClick={jumpToBottom}> Jump To Bottom </button>
+          </div>
+          {!fileLoaded && <div>
+            <p>
+              Upload your Story JSON to begin
+            </p>
+            <input type='file' accept='.json' onChange={loadPassageJSON}></input>
+          </div>}
 
-        <p>
-          ## JOURNAL SYSTEM: Modal and sidebar button. Easy. Can be created separately. Maybe should go last?
-          - Needs a global flag state system. Perhaps we can use setState {`( (prevState)=>{return {...prevState}.addNewFlag})`} to keep
-          track of flags in the journal
-        </p>
-        <div>
-          <p>
-            Hello I am the master parent
-          </p>
-          {fileLoaded && <button onClick={() => { addPassage('entry') }}> START!!!</button>}
-          {displayedPassages.map((passageData, index) => (
-            <>
-              <PassageBox passageData={passageData} addPassage={addPassage} setJournalFlags={setJournalFlags} textTagMap={textTagMap} index={index} ></PassageBox>
-            </>
-          ))}
+          <div>
+            {displayedPassages.map((passageData, index) => (
+              <>
+                <PassageBox passageData={passageData} addPassage={addPassage} setJournalFlags={setJournalFlags} textTagMap={textTagMap} index={index} ></PassageBox>
+              </>
+            ))}
 
-          <div ref={bottomRef} />
+            <div id='bottomRef' ref={bottomRef} style={{ height: '20vh' }} />
+          </div>
         </div>
+        <div id='rightContent' className='sideCol' style={{}}></div>
       </div>
     </>
   )

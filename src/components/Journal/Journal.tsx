@@ -1,5 +1,6 @@
-import { act, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import TextContent from "../TextContent/TextContent";
+import { motion } from "motion/react";
 
 interface journalProps {
     journalFlags: Record<string, number>,
@@ -99,6 +100,37 @@ export default function Journal(props: journalProps) {
     }
 
     return <>
+        {/** perhaps there should be a collision box? needs to be big enough such that the offset to the visual wont affect selection on the hover animation yk? like 
+         * it displaces 100px to the right, that animation can possibly move it off the mouse, thus un-hovering it
+         */}
+        <motion.div 
+            id="journal-toggle-collision"
+            style={{position:'fixed',
+                bottom:'15%',
+                width:500,height:700,
+                x:-300,
+                y:0,
+                rotate:15,
+            }}
+            whileHover={{
+                x:0,
+                y:0,
+                rotate:5,
+            }}
+            onClick={() => { setShowJournal((prevShowJournal) => (!prevShowJournal)) }}
+        >
+            <div 
+                id='journal-visuals'
+                style={{
+                width:450,height:650, 
+                backgroundColor:'#635337ff',
+                border:'solid 2px black'
+            }}
+            >
+
+            </div>
+            
+        </motion.div>
         <div style={{ position: "fixed", left: '0%', top: '0%' }}>
             <button onClick={() => { setShowJournal((prevShowJournal) => (!prevShowJournal)) }}
             // style={{ position: "fixed", left: '0%', top: '0%' }}
@@ -120,13 +152,13 @@ export default function Journal(props: journalProps) {
             }}>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
                     <TextContent
-                        raw={getPageContent(leftPageIdx) || 'ERROR couldnt fetch content for LEFT PAGE'}
+                        raw={getPageContent(leftPageIdx) || 'ERROR no content fetched for LEFT PAGE'}
                         textTagMap={textTagMap}
                     ></TextContent>
                 </div>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
                     <TextContent
-                        raw={getPageContent(leftPageIdx + 1) || 'ERROR couldnt fetch content for RIGHT PAGE'}
+                        raw={getPageContent(leftPageIdx + 1) || 'DEBUG no content fetched for RIGHT PAGE'}
                         textTagMap={textTagMap}
                     ></TextContent>
                 </div>

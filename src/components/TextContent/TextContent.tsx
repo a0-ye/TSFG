@@ -16,6 +16,16 @@ interface TextContentProps {
  * Possible bugs:
  *  Unverified RegEx. can it handle in-line square brackets [] not part of tagging?
  * 
+ * 
+ * 
+ * REDESIGN IDEA: use an existing text language like Markdown and directly import md to display as HTML using a library. Removes CSS control for ease of use and type safety
+ * 
+ * iDEA: markdown -> TSFG script & tags CONS: markdown can't do text highlighting. Probably an issue.
+ * 
+ * THREAD: XML
+ * 
+ * if we take a docx format which is im XML, we can convert the docx into HTML for easy content displaying. We can parse the docx perhaps for conditional displaying
+ * 
  */
 export default function TextContent(props: TextContentProps) {
     const raw = props.raw
