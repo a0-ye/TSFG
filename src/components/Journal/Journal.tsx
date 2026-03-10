@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import TextContent from "../TextContent/TextContent";
 import { motion } from "motion/react";
 
 interface journalProps {
@@ -151,16 +150,10 @@ export default function Journal(props: journalProps) {
                 display: "flex"
             }}>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
-                    <TextContent
-                        raw={getPageContent(leftPageIdx) || 'ERROR no content fetched for LEFT PAGE'}
-                        textTagMap={textTagMap}
-                    ></TextContent>
+                    something should be here
                 </div>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
-                    <TextContent
-                        raw={getPageContent(leftPageIdx + 1) || 'DEBUG no content fetched for RIGHT PAGE'}
-                        textTagMap={textTagMap}
-                    ></TextContent>
+                                    something should be here
                 </div>
             </div>
             <div> {leftPageIdx} </div>

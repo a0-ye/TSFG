@@ -2,27 +2,23 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
 import Journal from './components/Journal/Journal'
+import { parseAsync, renderAsync } from 'docx-preview'
+import JSZip, { file } from 'jszip'
+import DOCXNodeViewer from './components/Debug/DOCXNodeView'
 
-export interface ActionDetail {
-  TextContent: string,
-  setFlags?: Record<string, number>,
-  // defaultFlag?: boolean,
+
+export interface storyNode {
+  id: string, // id
+  data: string[][], // other rows' content excluding the ID row (very first one)
+  rowCount: number, // total number of rows, INCLUDING the id row,
+  type: string,
+  next: string[],
+};
+
+interface jsonNode {
+  // TODO: will need other variables, such as flags and delay and such
+  id: string, type: string, next: string[]
 }
-
-export interface Passage {
-  TextContent: string,
-  TextTags?: Record<string, Object>,
-  ImageContent?: string,
-  Actions: Record<string, ActionDetail>
-}
-
-const BLANK_PASSAGE: Passage = {
-  TextContent: 'BLANK_PASSAGE',
-  Actions: {
-    "entry": { TextContent: 'BLANK_PASSAGE_TEXT. LOOP TO ENTRY' }
-  }
-}
-
 
 function App() {
   /**
@@ -31,10 +27,15 @@ function App() {
    * replace Map usage with Record<T,T>()
    */
 
-  const [allPassages, setAllPassages] = useState<Map<string, Passage>>(new Map<string, Passage>())
-  const [textTagMap, setTextTagMap] = useState<Map<string, Object>>(new Map<string, Object>())
-  const [journalEntries, setJournalEntries] = useState<Record<string, Record<string, string>>>({})
-  const [displayedPassages, setDisplayedPassages] = useState<Passage[]>([])
+
+  const [displayedPassages, setDisplayedPassages] = useState<string[]>([])  // An array of passage IDs to display
+  const addPassage = (passageID: string) => {
+    setDisplayedPassages((prevPassages) => {
+      return [...prevPassages, passageID]
+    })
+  }
+  const [journalEntries, setJournalEntries] = useState<Record<string, Record<string, string>>>({})  // Entries for journal. Displayed based on journalFlags
+  const [journalFlags, setJournalFlags] = useState<Record<string, number>>({})  // Flags for journal. If the flag for a given entry is set, display in journal.
   const [fileLoaded, setFileLoaded] = useState(false)
 
 
@@ -48,68 +49,67 @@ function App() {
    * If we write journal entries for goblin1, goblin2, goblin3, in the journal, we should see those entries populate the journal.
    * Because buttlicker has no journal entry, nothing will show up and nothing will happen
    */
-  const [journalFlags, setJournalFlags] = useState<Record<string, number>>({})
+  const [passageMap, setPassageMap] = useState(new Map<string, storyNode>()) // A map containing all of the passages as id:node key:val
 
   /**
-   * if we ever make a custom file format (for bundling audio img etc, still use this function im sure we can select multiple files too.)
    * 
-   * on that note, maybe we can make a resource map, e.g. "music.mp3" maps to the file music.mp3, and the config json for events simply tries to access resourcemap["music.mp3"]
+   * Extracts the story data from the zip file, and loads it into the global passageMap
    */
-  const loadPassageJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const loadStory = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const ghostDiv: HTMLElement = document.createElement('div');  // temp, used to extract the story content from docx
     const file = event.target.files?.[0];
     if (!file) { return; }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const result = e.target?.result as string;
-        const json = JSON.parse(result)
-        const allPassages = new Map<string, Passage>()
-        // Process the JSON
+    try {
+      // Extract json and docx from zip
+      const zip = await JSZip.loadAsync(file);
+      const jsonFile = zip.filter((path, _) => path.endsWith(".json"))[0];
+      const jsonData = jsonFile ? await jsonFile.async("string") : "{}";
+      const nodeData:jsonNode[] = JSON.parse(jsonData);
 
-        Object.entries(json).forEach((id_data_pair) => {
-          const id = id_data_pair[0]
-          const data = id_data_pair[1]
-          if (id.startsWith('__')) {
-            /**
-             * Special Cases flagged by double underscore '__':
-             * __TextTags
-             */
-            const tagMap = new Map<string, Object>()
-            Object.entries(data ?? {}).forEach(([key, value]) => {
-              tagMap.set(key, value as Object)
-            })
-            setTextTagMap(tagMap);
-          } else if (id.startsWith('JE_')) {  // Journal Entries
-            // Process Journal Entry entries with structure id: {num:Text, num:Text, num:Text...}
-            setJournalEntries((prevJournalEntries) => {
-              const newJournalEntries = { ...prevJournalEntries }
-              newJournalEntries[id] = (data as Record<string, string>)
-              console.log('setting journal entries: ', newJournalEntries);
-              return newJournalEntries
-            })
-          } else {  // Otherwise treat as passage
-            allPassages.set(id, data as Passage)
-          }
-        })
-
-        setAllPassages(allPassages)
-        setFileLoaded(true)
-      } catch (error) {
-        console.error('Failed to read JSON:', error);
+      const docxFile = zip.filter((path, _) => path.endsWith(".docx"))[0];
+      if (!docxFile) {
+        console.error("ERRO ON FILE LOAD: No .docx file found in the package");
       }
+      const docxBlob = docxFile ? await docxFile.async("blob") : null;
+
+      // load docx into ghostDiv
+      await renderAsync(docxBlob, ghostDiv);
+
+      // read from the ghostDiv
+      const tables = ghostDiv.querySelectorAll('article table');
+      const nodeMap = new Map()
+      const tableNodes = Array.from(tables).map((table, index) => {
+        const htmlTable = table as HTMLTableElement;
+        const rows = Array.from(htmlTable.rows);
+        const rawID = rows[0].cells[0].textContent?.trim() || `noIDError|Table-${index}`;
+
+        // slice from index 1 to capture everything after the ID row
+        const contentData = rows.slice(1).map(row =>
+          Array.from(row.cells).map(cell => cell.innerHTML)
+        );
+        const specificNodeData = nodeData.find(node => node.id == rawID );
+        
+        const output: storyNode = {
+          id: rawID,
+          data: contentData,
+          rowCount: rows.length,
+          type:'error',
+          next:['error'],
+          ...specificNodeData // overwrite the default errors for type & next
+        };
+        nodeMap.set(rawID, output)
+        return output;
+      });
+      setPassageMap(nodeMap)
+      addPassage(tableNodes[0].id)  // DEBUG AUTO ADD THE FIRST ONE
+    } catch (error) {
+      console.error("Failed to load story nodes from DOCX");
+
     }
-    reader.readAsText(file);
+
+    setFileLoaded(true)
   }
 
-  const addPassage = (passageID: string) => {
-    const nextPassage = allPassages.get(passageID)
-    if (!nextPassage) {
-      console.log(`couldnt find passageID [${passageID}]`);
-      setDisplayedPassages([...displayedPassages, BLANK_PASSAGE]);
-      return
-    }
-    setDisplayedPassages([...displayedPassages, nextPassage])
-  }
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const jumpToBottom = () => {
@@ -119,27 +119,18 @@ function App() {
   }
   useEffect(jumpToBottom, [displayedPassages]);
 
-  useEffect(() => {
-    if (fileLoaded) {
-      addPassage('entry')
-    }
-  }, [fileLoaded])
-
   return (
     <>
-      <Journal
+      {/* <Journal
         journalFlags={journalFlags}
         journalEntries={journalEntries}
-        textTagMap={textTagMap}
-      ></Journal>
+      ></Journal> */}
 
       <div id='triColSplit' style={{ display: 'grid', gridTemplateColumns: ' 15vw 70vw 15vw ' }}>
         <div id='leftContent' className='sideCol' style={{}}></div>
         <div id='centerContent'>
           <div style={{ position: 'fixed', top: 0, right: 0 }}>
             <button onClick={() => {
-              setAllPassages(new Map<string, Passage>())
-              setTextTagMap(new Map<string, Object>())
               setJournalEntries({})
               setDisplayedPassages([])
               setFileLoaded(false)
@@ -149,17 +140,26 @@ function App() {
           </div>
           {!fileLoaded && <div>
             <p>
-              Upload your Story JSON to begin
+              Upload your .zip file to begin. It should contain both the .json and the .docx
             </p>
-            <input type='file' accept='.json' onChange={loadPassageJSON}></input>
+            <input type='file' accept='.zip' onChange={loadStory}></input>
           </div>}
 
+          {
+            // fileLoaded && <DOCXNodeViewer nodes={storyNodes} />
+          }
+
           <div>
-            {displayedPassages.map((passageData, index) => (
+            {displayedPassages.map((passageID, index) => (
               <>
-                <PassageBox passageData={passageData} addPassage={addPassage} setJournalFlags={setJournalFlags} textTagMap={textTagMap} index={index} ></PassageBox>
+                {
+                  // should pass it:
+                  // The ID, the Json data, the passage map. The intent is that inside, it looks up passage content on its own.d
+                }
+                <PassageBox passageID={passageID} nodeData={{}} passageMap={passageMap} addPassage={addPassage} setJournalFlags={setJournalFlags} index={index} ></PassageBox>
               </>
             ))}
+
 
             <div id='bottomRef' ref={bottomRef} style={{ height: '20vh' }} />
           </div>
