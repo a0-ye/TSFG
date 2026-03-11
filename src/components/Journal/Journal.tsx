@@ -45,7 +45,6 @@ export default function Journal(props: journalProps) {
     const [leftPageIdx, setleftPageIdx] = useState(0)
     const journalFlags = props.journalFlags;
     const journalEntries = props.journalEntries;
-    const textTagMap = props.textTagMap
     const [pages, setPages] = useState<journalPage[]>([])
     const [showJournal, setShowJournal] = useState(false)
 
@@ -89,13 +88,6 @@ export default function Journal(props: journalProps) {
             // == 0 means front cover. dont decrement
             return currentLeftPageIdx - 2 < 0 ? currentLeftPageIdx : currentLeftPageIdx - 2
         })
-    }
-
-    const getPageContent = (idx: number) => {
-        const page = pages[idx];
-        if (!page) return null;
-        const flagValue = journalFlags[page.id]
-        return page.variants[flagValue]
     }
 
     return <>

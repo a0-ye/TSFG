@@ -1,4 +1,4 @@
-import { act, useState } from "react"
+import {useState } from "react"
 import type { storyNode } from "../../App"
 import { motion } from "motion/react"
 
@@ -24,7 +24,6 @@ export default function PassageBox(props: PassageBoxProps) {
     const passageMap = props.passageMap
     const passageNode = passageMap.get(passageID)
 
-    const setJournalFlags = props.setJournalFlags
     const [lockoutChoices, setLockoutChoices] = useState(false)
     const [choiceIndex, setChoiceIndex] = useState(Infinity)
     const actions: string[] = []

@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
-import Journal from './components/Journal/Journal'
-import { parseAsync, renderAsync } from 'docx-preview'
-import JSZip, { file } from 'jszip'
-import DOCXNodeViewer from './components/Debug/DOCXNodeView'
+import {renderAsync } from 'docx-preview'
+import JSZip from 'jszip'
 
 
 export interface storyNode {
@@ -36,6 +34,10 @@ function App() {
   }
   const [journalEntries, setJournalEntries] = useState<Record<string, Record<string, string>>>({})  // Entries for journal. Displayed based on journalFlags
   const [journalFlags, setJournalFlags] = useState<Record<string, number>>({})  // Flags for journal. If the flag for a given entry is set, display in journal.
+  journalFlags
+  journalEntries
+
+
   const [fileLoaded, setFileLoaded] = useState(false)
 
 
