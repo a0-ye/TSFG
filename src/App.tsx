@@ -156,7 +156,7 @@ function App() {
                   // should pass it:
                   // The ID, the Json data, the passage map. The intent is that inside, it looks up passage content on its own.d
                 }
-                <PassageBox passageID={passageID} nodeData={{}} passageMap={passageMap} addPassage={addPassage} setJournalFlags={setJournalFlags} index={index} ></PassageBox>
+                <PassageBox passageID={passageID} passageMap={passageMap} addPassage={addPassage} setJournalFlags={setJournalFlags} index={index} ></PassageBox>
               </>
             ))}
 

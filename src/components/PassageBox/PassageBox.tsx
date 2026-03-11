@@ -5,7 +5,6 @@ import { motion } from "motion/react"
 
 interface PassageBoxProps {
     passageID: string,
-    nodeData: Record<string, string>, // holds flags, transitions, next node, action nodes, etc. FROM THE JSON
     passageMap: Map<string, storyNode>,    // map of ALL story content
     addPassage: Function,
     setJournalFlags: Function,
@@ -22,7 +21,8 @@ interface PassageBoxProps {
  */
 export default function PassageBox(props: PassageBoxProps) {
     const passageID = props.passageID
-    const storyNode = props.passageMap.get(passageID)
+    const passageMap = props.passageMap
+    const passageNode = passageMap.get(passageID)
 
     const setJournalFlags = props.setJournalFlags
     const [lockoutChoices, setLockoutChoices] = useState(false)
@@ -32,10 +32,10 @@ export default function PassageBox(props: PassageBoxProps) {
     /**
      * id, type, next['stringids']
      */
-    if (props.nodeData.type == '1') { // perform a check for various things. Mainly the type
-        actions.push(props.nodeData.next);  // push in the string IDs for the actions
+    if (passageNode?.type == '1') { // perform a check for various things. Mainly the type
+        actions.push(...passageNode?.next);  // push in the string IDs for the actions
     } else {
-        // add the default advance?
+        // actions.push(passageNode?.next[0] || 'error')
     }
 
     return <>
@@ -44,28 +44,54 @@ export default function PassageBox(props: PassageBoxProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
         >
-            <div dangerouslySetInnerHTML={{ __html: storyNode?.data[0] || `ERROR: no node found for ID ${passageID}` }}></div>
+
+            <div dangerouslySetInnerHTML={{ __html: passageNode?.data[0] || `ERROR: no node found for ID ${passageID}` }}></div>
             <div style={{ position: 'absolute', bottom: '0%' }}>
-                {
-                    actions.map((actionID, index) => {
-                        return <button
+                {actions.length > 0 ? actions.map((actionID, index) => {
+                    return <>
+                        <button id={actionID}
                             style={{ backgroundColor: choiceIndex == index ? '#7e8f20ff' : (lockoutChoices ? '#70707052' : "auto"), pointerEvents: lockoutChoices ? "none" : 'auto' }}
                             dangerouslySetInnerHTML={
-                                { __html: props.passageMap.get(actionID)?.data[0] || `ACTION ERROR: no action for ID ${actionID}` }
+                                {
+                                    __html: choiceIndex == index ? props.passageMap.get(actionID)?.data[1] || `ACTION ERROR: no text for ID ${actionID}[1]`
+                                        : props.passageMap.get(actionID)?.data[0] || `ACTION ERROR: no text for ID ${actionID}[0]`
+                                }
                             }
                             onClick={() => {
                                 // action lockout flags
                                 setLockoutChoices(true)
                                 setChoiceIndex(index)
-                                props.addPassage() // Append next Passage ID to the global chain. 
-                                // check flags to be set via json data
+                                props.addPassage(passageMap.get(actionID)?.next[0]) // Append next Passage ID to the global chain. 
+                                /**
+                                 * TODO: 
+                                 *  change HTML text to second flavor text 
+                                 * check flags to be set via json data
+                                 *  
+                                 * 
+                                 * 
+                                 */
                                 // setJournalFlags((prevJournalFlags: Record<string, number>) => {
                                 //     return { ...prevJournalFlags, ...detail.setFlags ?? {} }
                                 // })
-                            }}></button>
-                    })
+                            }}>
+
+                        </button>
+                        {/* <span style={{ fontSize: '10px', color: '#68c7caff', position: 'absolute', top: '2px', right: '5px' }}>
+                            ID: {passageMap.get(actionID)?.id} | next: {passageMap.get(actionID)?.next} | data: {passageMap.get(actionID)?.data}
+                        </span> */}
+                    </>
+                }) : <button
+                    style={{ backgroundColor: choiceIndex != Infinity ? '#7e8f20ff' : (lockoutChoices ? '#70707052' : "auto"), pointerEvents: lockoutChoices ? "none" : 'auto' }}
+                    onClick={() => {
+                        props.addPassage(passageNode?.next[0])
+                        setChoiceIndex(0)
+                        setLockoutChoices(true)
+                    }}> advance... </button>
                 }
             </div>
+            <span style={{ fontSize: '10px', color: '#68c7caff', position: 'absolute', top: '2px', right: '5px' }}>
+                DEBUG INFO|   ID: {passageNode?.id} | next: {passageNode?.next}
+            </span>
         </motion.div>
 
 
