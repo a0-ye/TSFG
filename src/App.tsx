@@ -9,7 +9,7 @@ import DOCXNodeViewer from './components/Debug/DOCXNodeView'
 
 export interface storyNode {
   id: string, // id
-  data: string[][], // other rows' content excluding the ID row (very first one)
+  data: string[], // other rows' content excluding the ID row (very first one)
   rowCount: number, // total number of rows, INCLUDING the id row,
   type: string,
   next: string[],
@@ -64,7 +64,7 @@ function App() {
       const zip = await JSZip.loadAsync(file);
       const jsonFile = zip.filter((path, _) => path.endsWith(".json"))[0];
       const jsonData = jsonFile ? await jsonFile.async("string") : "{}";
-      const nodeData:jsonNode[] = JSON.parse(jsonData);
+      const nodeData: jsonNode[] = JSON.parse(jsonData);
 
       const docxFile = zip.filter((path, _) => path.endsWith(".docx"))[0];
       if (!docxFile) {
@@ -83,18 +83,22 @@ function App() {
         const rows = Array.from(htmlTable.rows);
         const rawID = rows[0].cells[0].textContent?.trim() || `noIDError|Table-${index}`;
 
+
         // slice from index 1 to capture everything after the ID row
         const contentData = rows.slice(1).map(row =>
-          Array.from(row.cells).map(cell => cell.innerHTML)
+          Array.from(row.cells).map(cell => cell.innerHTML)[0]
         );
-        const specificNodeData = nodeData.find(node => node.id == rawID );
-        
+        const specificNodeData = nodeData.find(node => node.id == rawID);
+        if (specificNodeData?.type == '2' && rows[2].cells[0].textContent.trim() == '') {
+          contentData[1] = contentData[0]
+        }
+
         const output: storyNode = {
           id: rawID,
           data: contentData,
           rowCount: rows.length,
-          type:'error',
-          next:['error'],
+          type: 'error',
+          next: ['error'],
           ...specificNodeData // overwrite the default errors for type & next
         };
         nodeMap.set(rawID, output)
@@ -103,7 +107,7 @@ function App() {
       setPassageMap(nodeMap)
       addPassage(tableNodes[0].id)  // DEBUG AUTO ADD THE FIRST ONE
     } catch (error) {
-      console.error("Failed to load story nodes from DOCX");
+      console.error("Failed to load story nodes from DOCX ", error);
 
     }
 

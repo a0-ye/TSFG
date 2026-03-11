@@ -64,11 +64,7 @@ export default function PassageBox(props: PassageBoxProps) {
                                 props.addPassage(passageMap.get(actionID)?.next[0]) // Append next Passage ID to the global chain. 
                                 /**
                                  * TODO: 
-                                 *  change HTML text to second flavor text 
                                  * check flags to be set via json data
-                                 *  
-                                 * 
-                                 * 
                                  */
                                 // setJournalFlags((prevJournalFlags: Record<string, number>) => {
                                 //     return { ...prevJournalFlags, ...detail.setFlags ?? {} }
@@ -76,9 +72,9 @@ export default function PassageBox(props: PassageBoxProps) {
                             }}>
 
                         </button>
-                        {/* <span style={{ fontSize: '10px', color: '#68c7caff', position: 'absolute', top: '2px', right: '5px' }}>
-                            ID: {passageMap.get(actionID)?.id} | next: {passageMap.get(actionID)?.next} | data: {passageMap.get(actionID)?.data}
-                        </span> */}
+                        <span style={{ fontSize: '10px', color: '#68c7caff', position: 'absolute', top: '2px', right: '5px' }}>
+                            ID: {passageMap.get(actionID)?.id} | next: {passageMap.get(actionID)?.next}
+                        </span>
                     </>
                 }) : <button
                     style={{ backgroundColor: choiceIndex != Infinity ? '#7e8f20ff' : (lockoutChoices ? '#70707052' : "auto"), pointerEvents: lockoutChoices ? "none" : 'auto' }}
