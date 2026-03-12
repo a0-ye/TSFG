@@ -25,7 +25,10 @@
         "type": "2",
         "next": [
             "0-004"
-        ]
+        ],
+        "varset": {
+            "variable1":5
+        }
     },
     {
         "id": "0-004",
@@ -182,5 +185,14 @@
         "next": [
             "0-001"
         ]
+    },
+    {
+        "id": "J-001",
+        "type": "4",
+        "dependencies":{
+            "variable1":"<=5",
+            "variable2":true,
+            "variable3":5
+        }
     }
 ]

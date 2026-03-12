@@ -1,13 +1,13 @@
-import { act, useState } from "react"
-import type { storyNode } from "../../App"
+import { useState } from "react"
 import { motion } from "motion/react"
+import { ERROR_STORY_NODE, type ActionNode, type AllNodes, type DataNode, type StoryNode } from "../NodeTypes"
+import { updateFlags } from "../Journal/Journal"
 
 
 interface PassageBoxProps {
     passageID: string,
-    passageMap: Map<string, storyNode>,    // map of ALL story content
+    passageMap: Map<string, AllNodes>,    // map of ALL story content
     addPassage: Function,
-    setJournalFlags: Function,
     index: number,
 }
 
@@ -22,9 +22,8 @@ interface PassageBoxProps {
 export default function PassageBox(props: PassageBoxProps) {
     const passageID = props.passageID
     const passageMap = props.passageMap
-    const passageNode = passageMap.get(passageID)
+    const passageNode:StoryNode = passageMap.get(passageID) as StoryNode || ERROR_STORY_NODE
 
-    const setJournalFlags = props.setJournalFlags
     const [lockoutChoices, setLockoutChoices] = useState(false)
     const [choiceIndex, setChoiceIndex] = useState(Infinity)
     const actions: string[] = []
@@ -58,22 +57,16 @@ export default function PassageBox(props: PassageBoxProps) {
                                 }
                             }
                             onClick={() => {
-                                // action lockout flags
+                                const thisNode = (passageMap.get(actionID) as ActionNode)
                                 setLockoutChoices(true)
                                 setChoiceIndex(index)
-                                props.addPassage(passageMap.get(actionID)?.next[0]) // Append next Passage ID to the global chain. 
-                                /**
-                                 * TODO: 
-                                 * check flags to be set via json data
-                                 */
-                                // setJournalFlags((prevJournalFlags: Record<string, number>) => {
-                                //     return { ...prevJournalFlags, ...detail.setFlags ?? {} }
-                                // })
+                                props.addPassage(thisNode.next[0]) // Append next Passage ID to the global chain if clicked
+                                updateFlags(thisNode.varset)    // Update flags directly from node varset
                             }}>
 
                         </button>
                         <span style={{ fontSize: '10px', color: '#68c7caff', position: 'absolute', top: '2px', right: '5px' }}>
-                            ID: {passageMap.get(actionID)?.id} | next: {passageMap.get(actionID)?.next}
+                            ID: {passageMap.get(actionID)?.id} | next: {(passageMap.get(actionID)as ActionNode)?.next}
                         </span>
                     </>
                 }) : <button

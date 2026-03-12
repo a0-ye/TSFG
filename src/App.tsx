@@ -2,18 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
 import Journal from './components/Journal/Journal'
-import { parseAsync, renderAsync } from 'docx-preview'
+import {renderAsync } from 'docx-preview'
 import JSZip, { file } from 'jszip'
 import DOCXNodeViewer from './components/Debug/DOCXNodeView'
+import type { AllNodes, DataNode } from './components/NodeTypes'
 
 
-export interface storyNode {
-  id: string, // id
-  data: string[], // other rows' content excluding the ID row (very first one)
-  rowCount: number, // total number of rows, INCLUDING the id row,
-  type: string,
-  next: string[],
-};
+
 
 interface jsonNode {
   // TODO: will need other variables, such as flags and delay and such
@@ -34,8 +29,7 @@ function App() {
       return [...prevPassages, passageID]
     })
   }
-  const [journalEntries, setJournalEntries] = useState<Record<string, Record<string, string>>>({})  // Entries for journal. Displayed based on journalFlags
-  const [journalFlags, setJournalFlags] = useState<Record<string, number>>({})  // Flags for journal. If the flag for a given entry is set, display in journal.
+  
   const [fileLoaded, setFileLoaded] = useState(false)
 
 
@@ -49,7 +43,7 @@ function App() {
    * If we write journal entries for goblin1, goblin2, goblin3, in the journal, we should see those entries populate the journal.
    * Because buttlicker has no journal entry, nothing will show up and nothing will happen
    */
-  const [passageMap, setPassageMap] = useState(new Map<string, storyNode>()) // A map containing all of the passages as id:node key:val
+  const [passageMap, setPassageMap] = useState(new Map<string, AllNodes>()) // A map containing all of the passages as id:node key:val
 
   /**
    * 
@@ -93,12 +87,11 @@ function App() {
           contentData[1] = contentData[0]
         }
 
-        const output: storyNode = {
+        const output: DataNode = {
           id: rawID,
+          type: 'error',
           data: contentData,
           rowCount: rows.length,
-          type: 'error',
-          next: ['error'],
           ...specificNodeData // overwrite the default errors for type & next
         };
         nodeMap.set(rawID, output)
@@ -135,7 +128,6 @@ function App() {
         <div id='centerContent'>
           <div style={{ position: 'fixed', top: 0, right: 0 }}>
             <button onClick={() => {
-              setJournalEntries({})
               setDisplayedPassages([])
               setFileLoaded(false)
               // DOES NOT RESET THE JOURNAL. 
@@ -160,7 +152,7 @@ function App() {
                   // should pass it:
                   // The ID, the Json data, the passage map. The intent is that inside, it looks up passage content on its own.d
                 }
-                <PassageBox passageID={passageID} passageMap={passageMap} addPassage={addPassage} setJournalFlags={setJournalFlags} index={index} ></PassageBox>
+                <PassageBox passageID={passageID} passageMap={passageMap} addPassage={addPassage} index={index} ></PassageBox>
               </>
             ))}
 
