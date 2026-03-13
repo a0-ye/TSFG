@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
 import Journal from './components/Journal/Journal'
-import {renderAsync } from 'docx-preview'
+import { renderAsync } from 'docx-preview'
 import JSZip, { file } from 'jszip'
-import DOCXNodeViewer from './components/Debug/DOCXNodeView'
-import type { AllNodes, DataNode } from './components/NodeTypes'
+
+import { ERROR_NODE, type AllNodes, type DataNode, type JournalNode } from './components/NodeTypes'
+import type { FlagValue } from './components/utils'
 
 
 
@@ -14,6 +15,7 @@ interface jsonNode {
   // TODO: will need other variables, such as flags and delay and such
   id: string, type: string, next: string[]
 }
+
 
 function App() {
   /**
@@ -29,21 +31,43 @@ function App() {
       return [...prevPassages, passageID]
     })
   }
-  
   const [fileLoaded, setFileLoaded] = useState(false)
+  const [nodeMap, setNodeMap] = useState(new Map<string, AllNodes>()) // A map containing all of the passages as id:node key:val
+  const [journalMap, setJournalMap] = useState(new Map<string, JournalNode>()) // map of all journal entries as id:node
 
+  const [flags, setFlags] = useState<Record<string, FlagValue>>({})
+  /**
+ * Updates Journal Flags with the all flag:value in newFlags.
+ * should not contain any operators since this is a flat value update
+ * @param newFlags JS object of string: string | number | boolean. 
+ */
+  function updateFlags(newFlags: Record<string, FlagValue>) {
+    setFlags((prev) => ({
+      ...prev,
+      ...newFlags
+    }));
+  }
+  const [displayedJournalEntries, setDisplayedJournalEntries] = useState<JournalNode[]>([])    // list of nodes. should be based on groupID used to keep track of chronological entries
 
   /**
-   * Main Game Logic:
+   * Runs when the game is restarted. NOT WIPED, but restarted.
    * 
-   * Journal Flags are arbitrarily named flags/tags that get added to the global journalFlags object. These unlock journal entries in the journal IFF there exists an entry matching that flag
-   * Flags get added when an action is taken, thus 
-   * 
-   * e.g. flags: goblin1, goblin2, goblin3, buttlicker
-   * If we write journal entries for goblin1, goblin2, goblin3, in the journal, we should see those entries populate the journal.
-   * Because buttlicker has no journal entry, nothing will show up and nothing will happen
+   * Should reset all flags
+   * Should remove all non-persistant displayed entries
    */
-  const [passageMap, setPassageMap] = useState(new Map<string, AllNodes>()) // A map containing all of the passages as id:node key:val
+  function restartRun() {
+    setFlags({})
+    // filter nodes whose persist flag is true
+    setDisplayedJournalEntries((prev) => prev.filter((node) => node.persist === true))
+  }
+
+  /**
+   * RESETS EVERYTHING. Wipes the slate clean
+   */
+  function resetAll() {
+    setFlags({})
+    setDisplayedJournalEntries([])
+  }
 
   /**
    * 
@@ -58,7 +82,8 @@ function App() {
       const zip = await JSZip.loadAsync(file);
       const jsonFile = zip.filter((path, _) => path.endsWith(".json"))[0];
       const jsonData = jsonFile ? await jsonFile.async("string") : "{}";
-      const nodeData: jsonNode[] = JSON.parse(jsonData);
+      const nodeData:Record<string,any> = JSON.parse(jsonData);
+      
 
       const docxFile = zip.filter((path, _) => path.endsWith(".docx"))[0];
       if (!docxFile) {
@@ -72,6 +97,9 @@ function App() {
       // read from the ghostDiv
       const tables = ghostDiv.querySelectorAll('article table');
       const nodeMap = new Map()
+      const journalMap = new Map<string, JournalNode>()
+
+      // Everything is based on the Tables get created first, so if there is JSON data for a non-existent table in the DOCX, no DataNode will ever be created
       const tableNodes = Array.from(tables).map((table, index) => {
         const htmlTable = table as HTMLTableElement;
         const rows = Array.from(htmlTable.rows);
@@ -82,22 +110,29 @@ function App() {
         const contentData = rows.slice(1).map(row =>
           Array.from(row.cells).map(cell => cell.innerHTML)[0]
         );
-        const specificNodeData = nodeData.find(node => node.id == rawID);
-        if (specificNodeData?.type == '2' && rows[2].cells[0].textContent.trim() == '') {
-          contentData[1] = contentData[0]
+        const specificNodeData = nodeData.find((node:any) => node.id == rawID); // TODO: fix typing here
+        if (specificNodeData?.type == '2') {
+          if (rows[2].cells[0].textContent.trim() == '') {
+            contentData[1] = contentData[0]
+          }
+          // other stuff maybe          
         }
 
         const output: DataNode = {
+          ...ERROR_NODE,  // if we cant find anything its just an error
           id: rawID,
-          type: 'error',
           data: contentData,
           rowCount: rows.length,
           ...specificNodeData // overwrite the default errors for type & next
         };
         nodeMap.set(rawID, output)
+        if (output.type == '3') {  // add as only journal node
+          journalMap.set(rawID, output as JournalNode)
+        }
         return output;
       });
-      setPassageMap(nodeMap)
+      setNodeMap(nodeMap)
+      setJournalMap(journalMap)
       addPassage(tableNodes[0].id)  // DEBUG AUTO ADD THE FIRST ONE
     } catch (error) {
       console.error("Failed to load story nodes from DOCX ", error);
@@ -118,10 +153,13 @@ function App() {
 
   return (
     <>
-      {/* <Journal
-        journalFlags={journalFlags}
-        journalEntries={journalEntries}
-      ></Journal> */}
+      <Journal
+        flags={flags}
+        setFlags={setFlags}
+        displayedJournalEntries={displayedJournalEntries}
+        setDisplayedJournalEntries={setDisplayedJournalEntries}
+        journalMap={journalMap}
+      ></Journal>
 
       <div id='triColSplit' style={{ display: 'grid', gridTemplateColumns: ' 15vw 70vw 15vw ' }}>
         <div id='leftContent' className='sideCol' style={{}}></div>
@@ -152,7 +190,14 @@ function App() {
                   // should pass it:
                   // The ID, the Json data, the passage map. The intent is that inside, it looks up passage content on its own.d
                 }
-                <PassageBox passageID={passageID} passageMap={passageMap} addPassage={addPassage} index={index} ></PassageBox>
+                <PassageBox
+                  passageID={passageID}
+                  passageMap={nodeMap}
+                  addPassage={addPassage}
+                  index={index}
+                  flags={flags}
+                  updateFlags={updateFlags}
+                ></PassageBox>
               </>
             ))}
 

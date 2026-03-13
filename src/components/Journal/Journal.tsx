@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import type { AllNodes, DataNode, JournalNode } from "../NodeTypes";
+import { ERROR_JOURNAL_NODE, type AllNodes, type DataNode, type JournalNode } from "../NodeTypes";
+import { evaluateDependency, type FlagValue } from "../utils";
+
 
 interface journalProps {
-    passageMap: Map<string, AllNodes>,
-    allJournalNodes: JournalNode[]
+    flags: Record<string, FlagValue>,
+    setFlags: Function,
+    displayedJournalEntries: JournalNode[],
+    setDisplayedJournalEntries: Function,
+    journalMap: Map<string,JournalNode>
+
+
 }
 
 /**
@@ -25,73 +32,40 @@ interface journalProps {
  * 
  */
 
-type FlagValue = string | number | boolean;
-const [journalFlags, setJournalFlags] = useState<Record<string, FlagValue>>({})
 
-/**
- * Updates Journal Flags with the all flag:value in newFlags.
- * should not contain any operators since this is a flat value update
- * @param newFlags JS object of string: string | number | boolean. 
- */
-export function updateFlags(newFlags: Record<string, FlagValue>) {
-    setJournalFlags((prev) => ({
-        ...prev,
-        ...newFlags
-    }));
-}
-// Evaluates dependencies in a JournalNode. 
-// used AI to help generate regex (I dont know how to write regex but I know how to utilize it)
-function evaluateDependency(currentValue: FlagValue, requirement: string | FlagValue): boolean {
-    const hasOperator = typeof requirement === 'string' && /^[><=!]+/.test(requirement);
-    // if it is not a string or has no operator
-    if (!hasOperator) {
-        return currentValue === requirement;
-    }
-    // otherwise we gotta check the operator
-    // regex to split the operator from the value (e.g., '>=' and '50'). 
-    const match = requirement.match(/^([><=!]+)\s*(.*)$/);
-    if (!match) return currentValue === requirement;
 
-    const [_, operator, reqValueStr] = match;
-
-    // Convert reqValue to the appropriate type for comparison
-    const reqValue = isNaN(Number(reqValueStr)) ? reqValueStr : Number(reqValueStr);
-
-    switch (operator) {
-        case '>': return currentValue > reqValue;
-        case '<': return currentValue < reqValue;
-        case '>=': return currentValue >= reqValue;
-        case '<=': return currentValue <= reqValue;
-        case '!=': return currentValue !== reqValue;
-        case '==': return currentValue === reqValue;
-        default: return currentValue === requirement;
-    }
-}
 
 export default function Journal(props: journalProps) {
-    const displayedEntries = useMemo(() => {
+    /**
+     * on journalFlag update, grab all dependency-met JournalNodes. keep only the highest priority per groupID. Replace entries
+     */
+    useEffect(() => {
         // Filter out based on condition: node's dependency flags' currentValue vs requirement is true
-        const met = props.allJournalNodes.filter((node: JournalNode) => {
+        const allJournalNodes = Array.from(props.journalMap.values())
+        
+        const met = allJournalNodes.filter((node: JournalNode) => {
             return Object.entries(node.dependencies).every(([flagKey, requirement]) => {
-                const currentFlagValue = journalFlags[flagKey];
+                const currentFlagValue = props.flags[flagKey];
                 if (currentFlagValue === undefined) return false;
                 return evaluateDependency(currentFlagValue, requirement as FlagValue);
             });
         });
 
-        // keep only the highest priority node per GroupID
+        // keep only the highest priority node per GroupID. map of groupID:node
         const groupMap = new Map<string, JournalNode>();
-
         met.forEach((node: JournalNode) => {
             const existing = groupMap.get(node.groupID);
             if (!existing || node.priority > existing.priority) {
                 groupMap.set(node.groupID, node);
             }
         });
-        return Array.from(groupMap.values()).map(node => node.id);
-    }, [journalFlags, props.allJournalNodes]);
 
+        // realistically, only one new node will be added at a time. if more entries are added though, they are added in an undefined order.
 
+        // replacement. go through the entire displayedEntries, replacing with whatever is inside the groupMap.
+        // This SHOULD preserve order
+        props.setDisplayedJournalEntries((prev: JournalNode[]) => prev.map((node) => {return groupMap.get(node.groupID) || ERROR_JOURNAL_NODE}))
+    }, [props.flags, props.journalMap]);
 
     const [leftPageIdx, setleftPageIdx] = useState(0)
     const [showJournal, setShowJournal] = useState(false)
@@ -99,7 +73,7 @@ export default function Journal(props: journalProps) {
     const nextPage = () => {
         setleftPageIdx((currentLeftPageIdx) => {
             //activePageIdx == length-1 means we are at the back cover. Do not increment
-            return currentLeftPageIdx + 2 >= displayedEntries.length ? currentLeftPageIdx : currentLeftPageIdx + 2
+            return currentLeftPageIdx + 2 >= props.displayedJournalEntries.length ? currentLeftPageIdx : currentLeftPageIdx + 2
         })
     }
     const prevPage = () => {
@@ -157,10 +131,10 @@ export default function Journal(props: journalProps) {
                 display: "flex"
             }}>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
-                    {displayedEntries[leftPageIdx] || `No Content found for index ${leftPageIdx + 1}`}
+                    {props.displayedJournalEntries[leftPageIdx].data || `No Content found for index ${leftPageIdx + 1}`}
                 </div>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
-                    {displayedEntries[leftPageIdx + 1] || `No Content found for index ${leftPageIdx + 1}`}
+                    {props.displayedJournalEntries[leftPageIdx + 1].data || `No Content found for index ${leftPageIdx + 1}`}
                 </div>
             </div>
             <div> {leftPageIdx} </div>

@@ -17,7 +17,8 @@
         "id": "0-003",
         "type": "1",
         "next": [
-            "0-003-a1"
+            "0-003-a1",
+            "0-003-aNever"
         ]
     },
     {
@@ -27,7 +28,22 @@
             "0-004"
         ],
         "varset": {
-            "variable1":5
+            "myVar": 5135938105,
+            "anotherVar":3,
+            "lastVar":"no injuries"
+        },
+        "dependencies":{}
+    },
+    {
+        "id": "0-003-aNever",
+        "type": "2",
+        "next": [
+            "0-004"
+        ],
+        "varset": {
+        },
+        "dependencies":{
+            "nonexistent_varaible":"nothingSatisfiesMe"
         }
     },
     {
@@ -42,7 +58,9 @@
         "type": "2",
         "next": [
             "0-005"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-005",
@@ -63,7 +81,9 @@
         "type": "2",
         "next": [
             "0-007"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-007",
@@ -86,21 +106,27 @@
         "type": "2",
         "next": [
             "0-009"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-008-a2",
         "type": "2",
         "next": [
             "0-009"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-008-a3",
         "type": "2",
         "next": [
             "0-009"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-009",
@@ -114,7 +140,9 @@
         "type": "2",
         "next": [
             "0-010"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-010",
@@ -128,7 +156,9 @@
         "type": "2",
         "next": [
             "0-011"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-011",
@@ -142,7 +172,9 @@
         "type": "2",
         "next": [
             "0-012"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-012",
@@ -156,7 +188,9 @@
         "type": "2",
         "next": [
             "0-013"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-013",
@@ -170,7 +204,9 @@
         "type": "2",
         "next": [
             "0-014"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "0-014",
@@ -184,15 +220,19 @@
         "type": "0",
         "next": [
             "0-001"
-        ]
+        ],
+        "varset":{},
+        "dependencies":{}
     },
     {
         "id": "J-001",
         "type": "4",
-        "dependencies":{
-            "variable1":"<=5",
-            "variable2":true,
-            "variable3":5
-        }
+        "groupID": "mushroom",
+        "dependencies": {
+            "variable1": "<=5",
+            "variable2": true,
+            "variable3": 5
+        },
+        "persist": false
     }
 ]

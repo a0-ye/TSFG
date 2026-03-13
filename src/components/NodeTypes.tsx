@@ -1,3 +1,4 @@
+import type { FlagValue } from "./utils";
 
 export type AllNodes = DataNode | StoryNode | ActionNode | JournalNode;
 
@@ -14,7 +15,8 @@ export interface StoryNode extends DataNode {  // type 0,1
 }
 export interface ActionNode extends DataNode {  // type 3
     next: string[]
-    varset: {}  // object with string: string | number | boolean
+    dependencies: Record<string,FlagValue>   // object with string: string | number | boolean
+    varset: Record<string,FlagValue>  // object with string: string | number | boolean
 }
 
 /**
@@ -23,29 +25,32 @@ export interface ActionNode extends DataNode {  // type 3
 export interface JournalNode extends DataNode { // type 4
     groupID:string,
     priority:number,    // priority. Higher means its displayed over lower ones if their conditions are all met
-    dependencies: {}  // object with string: string | number | boolean
+    dependencies: Record<string,FlagValue>,   // object with string: string | number | boolean
+    persist:boolean     //persist on restart
 }
 
 // ERROR NODES ==================
 
 export const ERROR_NODE: DataNode = {
-    id: 'error',
-    type: "error",
-    data: ["error"],
+    id: 'ERROR',
+    type: "ERROR",
+    data: ["ERROR"],
     rowCount: Infinity,
 }
 export const ERROR_STORY_NODE: StoryNode = {
     ...ERROR_NODE,
-    next: ['error']
+    next: ['ERROR']
 }
 export const ERROR_ACTION_NODE: ActionNode = {
     ...ERROR_NODE,
-    next: ['error'],
-    varset: { 'error': 'error' }
+    next: ['ERROR'],
+    dependencies: { 'ERROR': 'ERROR' },   // object with string: string | number | boolean
+    varset: { 'ERROR': 'ERROR' }
 }
 export const ERROR_JOURNAL_NODE: JournalNode = {
     ...ERROR_NODE,
-    groupID:'error',
+    groupID:'ERROR',
     priority:Infinity,
-    dependencies: { 'error': 'error' }
+    dependencies: { 'ERROR': 'ERROR' },
+    persist:false,
 }
