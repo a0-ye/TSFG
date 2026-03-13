@@ -1,26 +1,17 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import { ERROR_JOURNAL_NODE, type JournalNode } from "../NodeTypes";
+import { evaluateDependency, type FlagValue } from "../utils";
+
 
 interface journalProps {
-    journalFlags: Record<string, number>,
-    journalEntries: Record<string, Record<string, string>>,
-    textTagMap: Map<string, Object>,
-}
+    flags: Record<string, FlagValue>,
+    setFlags: Function,
+    displayedJournalEntries: JournalNode[],
+    setDisplayedJournalEntries: Function,
+    journalMap: Map<string,JournalNode>
 
 
-/**
- * Single page of the journal. It should know
- * its id
- * its content
- * its image???
- * and more if needed
- * 
- * We dont keep track of the flag, because we check the flag on render
- */
-
-interface journalPage {
-    id: string,
-    variants: Record<string, string>
 }
 
 /**
@@ -41,46 +32,48 @@ interface journalPage {
  * 
  */
 
-export default function Journal(props: journalProps) {
-    const [leftPageIdx, setleftPageIdx] = useState(0)
-    const journalFlags = props.journalFlags;
-    const journalEntries = props.journalEntries;
-    const [pages, setPages] = useState<journalPage[]>([])
-    const [showJournal, setShowJournal] = useState(false)
 
+
+
+export default function Journal(props: journalProps) {
     /**
-     * on flag change, check every flag for membership in pages
+     * on journalFlag update, grab all dependency-met JournalNodes. keep only the highest priority per groupID. Replace entries
      */
     useEffect(() => {
-        console.log('pre-add pages status', pages);
-        const currentPagesKeys = new Set(pages.map((page)=>{return page.id}))  // all pages in the journal currently
-        const newPageKeys = Object.keys(journalFlags).filter(
-            (flag) => {
-                console.log('membership test',flag,currentPagesKeys, (!currentPagesKeys.has(flag)) , (flag in journalEntries) );
-                
-                return (!currentPagesKeys.has(flag)) && (flag in journalEntries)
-            }    // sort out only the newly added pages
-        )
-        // console.log('filtered pagekeys',newPageKeys);
-        if (newPageKeys.length > 0) {
-            const newEntries = newPageKeys.map((key) => {
-                const createdPage = {
-                    id: key,
-                    variants: journalEntries[key]
-                }
-                console.log(`Adding ${key} to journal entries`);
-                console.log(createdPage);
-                return createdPage
-            })
+        // Filter out based on condition: node's dependency flags' currentValue vs requirement is true
+        const allJournalNodes = Array.from(props.journalMap.values())
+        
+        const met = allJournalNodes.filter((node: JournalNode) => {
+            return Object.entries(node.dependencies).every(([flagKey, requirement]) => {
+                const currentFlagValue = props.flags[flagKey];
+                if (currentFlagValue === undefined) return false;
+                return evaluateDependency(currentFlagValue, requirement as FlagValue);
+            });
+        });
 
-            setPages(prevPages => [...prevPages, ...newEntries])
-        }
-    }, [journalFlags])
+        // keep only the highest priority node per GroupID. map of groupID:node
+        const groupMap = new Map<string, JournalNode>();
+        met.forEach((node: JournalNode) => {
+            const existing = groupMap.get(node.groupID);
+            if (!existing || node.priority > existing.priority) {
+                groupMap.set(node.groupID, node);
+            }
+        });
+
+        // realistically, only one new node will be added at a time. if more entries are added though, they are added in an undefined order.
+
+        // replacement. go through the entire displayedEntries, replacing with whatever is inside the groupMap.
+        // This SHOULD preserve order
+        props.setDisplayedJournalEntries((prev: JournalNode[]) => prev.map((node) => {return groupMap.get(node.groupID) || ERROR_JOURNAL_NODE}))
+    }, [props.flags, props.journalMap]);
+
+    const [leftPageIdx, setleftPageIdx] = useState(0)
+    const [showJournal, setShowJournal] = useState(false)
 
     const nextPage = () => {
         setleftPageIdx((currentLeftPageIdx) => {
             //activePageIdx == length-1 means we are at the back cover. Do not increment
-            return currentLeftPageIdx + 2 >= pages.length ? currentLeftPageIdx : currentLeftPageIdx + 2
+            return currentLeftPageIdx + 2 >= props.displayedJournalEntries.length ? currentLeftPageIdx : currentLeftPageIdx + 2
         })
     }
     const prevPage = () => {
@@ -94,33 +87,34 @@ export default function Journal(props: journalProps) {
         {/** perhaps there should be a collision box? needs to be big enough such that the offset to the visual wont affect selection on the hover animation yk? like 
          * it displaces 100px to the right, that animation can possibly move it off the mouse, thus un-hovering it
          */}
-        <motion.div 
+        <motion.div
             id="journal-toggle-collision"
-            style={{position:'fixed',
-                bottom:'15%',
-                width:500,height:700,
-                x:-300,
-                y:0,
-                rotate:15,
+            style={{
+                position: 'fixed',
+                bottom: '15%',
+                width: 500, height: 700,
+                x: -300,
+                y: 0,
+                rotate: 15,
             }}
             whileHover={{
-                x:0,
-                y:0,
-                rotate:5,
+                x: 0,
+                y: 0,
+                rotate: 5,
             }}
             onClick={() => { setShowJournal((prevShowJournal) => (!prevShowJournal)) }}
         >
-            <div 
+            <div
                 id='journal-visuals'
                 style={{
-                width:450,height:650, 
-                backgroundColor:'#635337ff',
-                border:'solid 2px black'
-            }}
+                    width: 450, height: 650,
+                    backgroundColor: '#635337ff',
+                    border: 'solid 2px black'
+                }}
             >
 
             </div>
-            
+
         </motion.div>
         <div style={{ position: "fixed", left: '0%', top: '0%' }}>
             <button onClick={() => { setShowJournal((prevShowJournal) => (!prevShowJournal)) }}
@@ -128,11 +122,6 @@ export default function Journal(props: journalProps) {
             >
                 toggle journal
             </button>
-            {Object.keys(journalFlags).map((key, idx) => {
-                return <p key={idx}>
-                    {key} and {journalFlags[key]}
-                </p>
-            })}
         </div>
         {showJournal && <div style={{
             position: 'fixed', left: '50%', top: '25%', translate: '-50% 0',
@@ -142,10 +131,10 @@ export default function Journal(props: journalProps) {
                 display: "flex"
             }}>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
-                    something should be here
+                    {props.displayedJournalEntries[leftPageIdx].data || `No Content found for index ${leftPageIdx + 1}`}
                 </div>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
-                                    something should be here
+                    {props.displayedJournalEntries[leftPageIdx + 1].data || `No Content found for index ${leftPageIdx + 1}`}
                 </div>
             </div>
             <div> {leftPageIdx} </div>
