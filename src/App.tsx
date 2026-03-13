@@ -3,19 +3,10 @@ import './App.css'
 import PassageBox from './components/PassageBox/PassageBox'
 import Journal from './components/Journal/Journal'
 import { renderAsync } from 'docx-preview'
-import JSZip, { file } from 'jszip'
+import JSZip from 'jszip'
 
 import { ERROR_NODE, type AllNodes, type DataNode, type JournalNode } from './components/NodeTypes'
 import type { FlagValue } from './components/utils'
-
-
-
-
-interface jsonNode {
-  // TODO: will need other variables, such as flags and delay and such
-  id: string, type: string, next: string[]
-}
-
 
 function App() {
   /**
@@ -67,6 +58,7 @@ function App() {
   function resetAll() {
     setFlags({})
     setDisplayedJournalEntries([])
+    setFileLoaded(false)
   }
 
   /**
@@ -82,8 +74,8 @@ function App() {
       const zip = await JSZip.loadAsync(file);
       const jsonFile = zip.filter((path, _) => path.endsWith(".json"))[0];
       const jsonData = jsonFile ? await jsonFile.async("string") : "{}";
-      const nodeData:Record<string,any> = JSON.parse(jsonData);
-      
+      const nodeData: Record<string, any> = JSON.parse(jsonData);
+
 
       const docxFile = zip.filter((path, _) => path.endsWith(".docx"))[0];
       if (!docxFile) {
@@ -110,7 +102,7 @@ function App() {
         const contentData = rows.slice(1).map(row =>
           Array.from(row.cells).map(cell => cell.innerHTML)[0]
         );
-        const specificNodeData = nodeData.find((node:any) => node.id == rawID); // TODO: fix typing here
+        const specificNodeData = nodeData.find((node: any) => node.id == rawID); // TODO: fix typing here
         if (specificNodeData?.type == '2') {
           if (rows[2].cells[0].textContent.trim() == '') {
             contentData[1] = contentData[0]
@@ -166,10 +158,12 @@ function App() {
         <div id='centerContent'>
           <div style={{ position: 'fixed', top: 0, right: 0 }}>
             <button onClick={() => {
-              setDisplayedPassages([])
-              setFileLoaded(false)
+              resetAll()
+            }}>Reset ALL (wipes progress)</button>
+            <button onClick={() => {
+              restartRun()
               // DOES NOT RESET THE JOURNAL. 
-            }}>Reset ALL</button>
+            }}>Restart Story from Beginning (with progress kept) </button>
             <button onClick={jumpToBottom}> Jump To Bottom </button>
           </div>
           {!fileLoaded && <div>
