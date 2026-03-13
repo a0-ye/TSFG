@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ERROR_JOURNAL_NODE, type AllNodes, type DataNode, type JournalNode } from "../NodeTypes";
+import { ERROR_JOURNAL_NODE, type JournalNode } from "../NodeTypes";
 import { evaluateDependency, type FlagValue } from "../utils";
 
 
