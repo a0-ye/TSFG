@@ -163,7 +163,7 @@ function App() {
             <button onClick={() => {
               restartRun()
               // DOES NOT RESET THE JOURNAL. 
-            }}>Restart Story from Beginning (with progress kept) </button>
+            }}>Restart Story (keep journal progress) </button>
             <button onClick={jumpToBottom}> Jump To Bottom </button>
           </div>
           {!fileLoaded && <div>
