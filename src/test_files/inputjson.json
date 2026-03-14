@@ -29,10 +29,12 @@
         ],
         "varset": {
             "myVar": 5135938105,
-            "anotherVar":3,
-            "lastVar":"no injuries"
+            "anotherVar": 3,
+            "lastVar": "no injuries",
+            "foundMushroom": true,
+            "toughGuy": 30
         },
-        "dependencies":{}
+        "dependencies": {}
     },
     {
         "id": "0-003-aNever",
@@ -40,10 +42,9 @@
         "next": [
             "0-004"
         ],
-        "varset": {
-        },
-        "dependencies":{
-            "nonexistent_varaible":"nothingSatisfiesMe"
+        "varset": {},
+        "dependencies": {
+            "nonexistent_varaible": "nothingSatisfiesMe"
         }
     },
     {
@@ -59,8 +60,10 @@
         "next": [
             "0-005"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {
+            "identifiedMushroom": true
+        },
+        "dependencies": {}
     },
     {
         "id": "0-005",
@@ -82,8 +85,11 @@
         "next": [
             "0-007"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {
+            "toughGuy": 500,
+            "weakGuy": 501
+        },
+        "dependencies": {}
     },
     {
         "id": "0-007",
@@ -107,8 +113,10 @@
         "next": [
             "0-009"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {
+            "weakGuy": 3
+        },
+        "dependencies": {}
     },
     {
         "id": "0-008-a2",
@@ -116,8 +124,10 @@
         "next": [
             "0-009"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {
+            "weakGuy": 3
+        },
+        "dependencies": {}
     },
     {
         "id": "0-008-a3",
@@ -125,8 +135,10 @@
         "next": [
             "0-009"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {
+            "weakGuy": 3
+        },
+        "dependencies": {}
     },
     {
         "id": "0-009",
@@ -141,8 +153,8 @@
         "next": [
             "0-010"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {},
+        "dependencies": {}
     },
     {
         "id": "0-010",
@@ -157,8 +169,8 @@
         "next": [
             "0-011"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {},
+        "dependencies": {}
     },
     {
         "id": "0-011",
@@ -173,8 +185,8 @@
         "next": [
             "0-012"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {},
+        "dependencies": {}
     },
     {
         "id": "0-012",
@@ -189,8 +201,8 @@
         "next": [
             "0-013"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {},
+        "dependencies": {}
     },
     {
         "id": "0-013",
@@ -205,8 +217,8 @@
         "next": [
             "0-014"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {},
+        "dependencies": {}
     },
     {
         "id": "0-014",
@@ -221,17 +233,47 @@
         "next": [
             "0-001"
         ],
-        "varset":{},
-        "dependencies":{}
+        "varset": {},
+        "dependencies": {}
     },
     {
-        "id": "J-001",
+        "id": "J-mushroom-1",
         "type": "4",
         "groupID": "mushroom",
+        "priority": 0,
         "dependencies": {
-            "variable1": "<=5",
-            "variable2": true,
-            "variable3": 5
+            "foundMushroom": true
+        },
+        "persist": false
+    },
+    {
+        "id": "J-mushroom-2",
+        "type": "4",
+        "groupID": "mushroom",
+        "priority": 500,
+        "dependencies": {
+            "foundMushroom": true,
+            "identifiedMushroom": true
+        },
+        "persist": false
+    },
+    {
+        "id": "J-tester-1",
+        "type": "4",
+        "groupID": "tuffguy",
+        "priority": 0,
+        "dependencies": {
+            "toughGuy": 500
+        },
+        "persist": false
+    },
+    {
+        "id": "J-othertester-1",
+        "type": "4",
+        "groupID": "weakguy",
+        "priority": 0,
+        "dependencies": {
+            "weakGuy": "<=500"
         },
         "persist": false
     }

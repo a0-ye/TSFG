@@ -10,6 +10,10 @@ export type FlagValue = string | number | boolean;
  * @returns 
  */
 export function evaluateDependency(currentValue: FlagValue, requirement: string | FlagValue): boolean {
+    // console.log(`evaluating value:${currentValue}, with requirement: ${requirement}`);
+    if (!currentValue) {
+        return false;
+    }
     const hasOperator = typeof requirement === 'string' && /^[><=!]+/.test(requirement);
     // if it is not a string or has no operator
     if (!hasOperator) {
@@ -42,10 +46,12 @@ export function evaluateDependency(currentValue: FlagValue, requirement: string 
  * @param flags The Record containing ALL flags
  * @returns Boolean for if all the dependencies for the given node are met
  */
-export function evaluateDependencies(node: JournalNode | ActionNode, flags:Record<string, FlagValue>): boolean {
-    console.log("NODE:",node, "FLAGS:", flags, "");
-    
+export function evaluateDependencies(node: JournalNode | ActionNode, flags: Record<string, FlagValue>): boolean {
+    // console.log("evaluating node ", node.id,);
     return Object.entries(node.dependencies).every(
-        entry => evaluateDependency(flags[entry[0]], entry[1])
+        entry => {
+            // console.log(entry, flags[entry[0]]);
+            return evaluateDependency(flags[entry[0]], entry[1])
+        }
     )
 }

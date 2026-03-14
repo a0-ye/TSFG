@@ -33,10 +33,12 @@ function App() {
  * @param newFlags JS object of string: string | number | boolean. 
  */
   function updateFlags(newFlags: Record<string, FlagValue>) {
-    setFlags((prev) => ({
-      ...prev,
-      ...newFlags
-    }));
+    setFlags((prev) => {
+      const newObj = { ...prev, ...newFlags }
+      console.log("Updated Flags", newObj);
+      return newObj
+    });
+
   }
   const [displayedJournalEntries, setDisplayedJournalEntries] = useState<JournalNode[]>([])    // list of nodes. should be based on groupID used to keep track of chronological entries
 
@@ -103,10 +105,9 @@ function App() {
           Array.from(row.cells).map(cell => cell.innerHTML)[0]
         );
         const specificNodeData = nodeData.find((node: any) => node.id == rawID); // TODO: fix typing here
+
         if (specificNodeData?.type == '2') {
-          if (rows[2].cells[0].textContent.trim() == '') {
-            contentData[1] = contentData[0]
-          }
+          if (rows[2].cells[0].textContent.trim() == '') { contentData[1] = contentData[0] } // if the text content is empty, copy from the other row
           // other stuff maybe          
         }
 
@@ -118,8 +119,9 @@ function App() {
           ...specificNodeData // overwrite the default errors for type & next
         };
         nodeMap.set(rawID, output)
-        if (output.type == '3') {  // add as only journal node
+        if (specificNodeData.type == '4') {  // add as only journal node
           journalMap.set(rawID, output as JournalNode)
+          // console.log(journalMap.get(rawID));
         }
         return output;
       });
