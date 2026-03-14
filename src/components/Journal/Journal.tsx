@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ERROR_JOURNAL_NODE, type JournalNode } from "../NodeTypes";
-import { evaluateDependency, type FlagValue } from "../utils";
+import { evaluateDependencies, type FlagValue } from "../utils";
 
 
 interface journalProps {
@@ -9,7 +9,7 @@ interface journalProps {
     setFlags: Function,
     displayedJournalEntries: JournalNode[],
     setDisplayedJournalEntries: Function,
-    journalMap: Map<string,JournalNode>
+    journalMap: Map<string, JournalNode>
 
 
 }
@@ -42,19 +42,18 @@ export default function Journal(props: journalProps) {
     useEffect(() => {
         // Filter out based on condition: node's dependency flags' currentValue vs requirement is true
         const allJournalNodes = Array.from(props.journalMap.values())
-        
+
+
         const met = allJournalNodes.filter((node: JournalNode) => {
-            return Object.entries(node.dependencies).every(([flagKey, requirement]) => {
-                const currentFlagValue = props.flags[flagKey];
-                if (currentFlagValue === undefined) return false;
-                return evaluateDependency(currentFlagValue, requirement as FlagValue);
-            });
+            return evaluateDependencies(node, props.flags)
         });
+        console.log('met', met);
 
         // keep only the highest priority node per GroupID. map of groupID:node
         const groupMap = new Map<string, JournalNode>();
         met.forEach((node: JournalNode) => {
             const existing = groupMap.get(node.groupID);
+
             if (!existing || node.priority > existing.priority) {
                 groupMap.set(node.groupID, node);
             }
@@ -64,7 +63,21 @@ export default function Journal(props: journalProps) {
 
         // replacement. go through the entire displayedEntries, replacing with whatever is inside the groupMap.
         // This SHOULD preserve order
-        props.setDisplayedJournalEntries((prev: JournalNode[]) => prev.map((node) => {return groupMap.get(node.groupID) || ERROR_JOURNAL_NODE}))
+        props.setDisplayedJournalEntries((prev: JournalNode[]) => {
+            // map all previous values to the most updated version from the Map
+            const updatedEntries: JournalNode[] = prev.map((node) => {
+                return groupMap.get(node.groupID) || ERROR_JOURNAL_NODE
+            })
+            // for every valid entry, entry doesnt exist in updatedEntries, add it
+            groupMap.forEach((node) => {
+                if (!updatedEntries.includes(node)) {
+                    updatedEntries.push(node)
+                }
+            })
+            console.log('displayedJournalEntries:', updatedEntries);
+            return updatedEntries
+        })
+
     }, [props.flags, props.journalMap]);
 
     const [leftPageIdx, setleftPageIdx] = useState(0)
@@ -131,10 +144,14 @@ export default function Journal(props: journalProps) {
                 display: "flex"
             }}>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
-                    {props.displayedJournalEntries[leftPageIdx].data || `No Content found for index ${leftPageIdx + 1}`}
+                    {props.displayedJournalEntries[leftPageIdx]?.data ?
+                        <div dangerouslySetInnerHTML={{ __html: props.displayedJournalEntries[leftPageIdx].data[0] }} />
+                        : <div> {`No Content found for index ${leftPageIdx}`} </div>}
                 </div>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
-                    {props.displayedJournalEntries[leftPageIdx + 1].data || `No Content found for index ${leftPageIdx + 1}`}
+                    {props.displayedJournalEntries[leftPageIdx + 1]?.data ?
+                        <div dangerouslySetInnerHTML={{ __html: props.displayedJournalEntries[leftPageIdx + 1].data[0] }} />
+                        : <div> {`No Content found for index ${leftPageIdx + 1}`} </div>}
                 </div>
             </div>
             <div> {leftPageIdx} </div>

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { motion } from "motion/react"
-import { ERROR_ACTION_NODE, ERROR_STORY_NODE, type ActionNode, type AllNodes, type StoryNode } from "../NodeTypes"
+import { ERROR_ACTION_NODE,ERROR_STORY_NODE, type ActionNode, type AllNodes,  type StoryNode } from "../NodeTypes"
 import { evaluateDependencies, type FlagValue } from "../utils";
 
 
@@ -16,6 +16,10 @@ interface PassageBoxProps {
     updateFlags: Function,
 }
 
+
+const neutralActionStyle = '#fce045ff'
+
+const greyedActionStyle = '#5c5c5cff'
 
 /**
  * 
@@ -46,19 +50,29 @@ export default function PassageBox(props: PassageBoxProps) {
     });
 
     return <>
-        <motion.div key={props.index} style={{ position: 'relative', margin: '50px', height: 500, border: 'solid 2px white', backgroundColor: '#2e2c28' }}
+        <motion.div key={props.index}
+            style={{ position: 'relative', 
+                // margin: '50px', 
+                // border: 'solid 2px white', 
+                // backgroundColor: '#2e2c28',
+                textAlign:'left', padding:'1em',
+            }}
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
         >
 
             <div dangerouslySetInnerHTML={{ __html: passageNode?.data[0] || `ERROR: no node found for ID ${passageID}` }}></div>
-            <div style={{ position: 'absolute', bottom: '0%' }}>
+            <div id="actionBox"
+            style={{
+                // backgroundColor: lockoutChoices?  'transparent' : "#70707052"
+            }}>
                 {visibleActionIDs.length > 0 ? visibleActionIDs.map((actionID, index) => {
                     return <>
                         <button id={actionID} key={actionID}
                             style={{
-                                backgroundColor: choiceIndex == index ? '#7e8f20ff' : (lockoutChoices ? '#70707052' : "auto"),
+                                backgroundColor: "transparent",
+                                color: lockoutChoices ?  ((choiceIndex == index )? "inherit" : greyedActionStyle) : neutralActionStyle,
                                 pointerEvents: lockoutChoices ? "none" : 'auto',
                             }}
                             dangerouslySetInnerHTML={
@@ -76,12 +90,19 @@ export default function PassageBox(props: PassageBoxProps) {
                             }}>
 
                         </button>
-                        <span id="DEBUG" style={{ fontSize: '10px', color: '#68c7caff', position: 'absolute', top: '2px', right: '5px' }}>
+                        <span id="DEBUG" style={{ fontSize: '10px', color: '#68c7caff', }}>
                             ID: {passageMap.get(actionID)?.id} | next: {(passageMap.get(actionID) as ActionNode)?.next}
                         </span>
+                        <br/>
                     </>
                 }) : <button
-                    style={{ backgroundColor: choiceIndex != Infinity ? '#7e8f20ff' : (lockoutChoices ? '#70707052' : "auto"), pointerEvents: lockoutChoices ? "none" : 'auto', display: lockoutChoices ? 'none' : 'auto' }}
+                    style={{ 
+                        backgroundColor: 'transparent', 
+                        color: choiceIndex == Infinity ? neutralActionStyle : 'inherit', 
+                        pointerEvents: lockoutChoices ? "none" : 'auto', 
+                        // opacity: lockoutChoices ? 0 : 1,
+                        display: lockoutChoices ? 'none' : 'auto',
+                    }}
                     onClick={() => {
                         props.addPassage(passageNode?.next[0])
                         setChoiceIndex(0)
