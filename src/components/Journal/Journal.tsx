@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ERROR_JOURNAL_NODE, type AllNodes, type DataNode, type JournalNode } from "../NodeTypes";
-import { evaluateDependencies, evaluateDependency, type FlagValue } from "../utils";
+import { ERROR_JOURNAL_NODE, type JournalNode } from "../NodeTypes";
+import { evaluateDependencies, type FlagValue } from "../utils";
 
 
 interface journalProps {
