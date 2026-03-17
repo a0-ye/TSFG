@@ -18,6 +18,9 @@ import {
     getSmoothStepPath,
     useReactFlow,
     type NodeProps,
+    type ReactFlowInstance,
+    NodeToolbar,
+    EdgeToolbar,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -28,9 +31,8 @@ import { ERROR_NODE, type DataNode, } from '../NodeTypes';
 /**
  * Node that can have vars set. Stored in the node's data prop as vars: data.vars
  */
-function VarSetNode({ id, data }: NodeProps) {
-    const { setNodes } = useReactFlow();
-
+function VarSetNode({ id, data, selected }: NodeProps) {
+    const { setNodes, deleteElements } = useReactFlow();
     const currentVars = (data?.vars as Array<{ key: string, value: string }>) || [];
     const updateGlobal = (newVars: Array<{ key: string, value: string }>) => {
         setNodes((nds) => nds.map((node) => {
@@ -40,21 +42,39 @@ function VarSetNode({ id, data }: NodeProps) {
             return node;
         }));
     };
-
     const addVar = () => updateGlobal([...currentVars, { key: '', value: '' }]);
-
     const removeVar = (index: number) => {
         updateGlobal(currentVars.filter((_, i) => i !== index));
     };
-
     const updateVar = (index: number, field: string, value: string) => {
         const next = [...currentVars];
         next[index] = { ...next[index], [field]: value };
         updateGlobal(next);
     };
 
+    const deleteSelf = () => {
+        deleteElements({ nodes: [{ id }] });
+    }
+
     return (
-        <div id='VarSetNodeContainer' style={{ backgroundColor: '#fff', borderRadius: '5px', padding: '5px', fontSize: 'x-small' }}>
+        <div id='VarSetNodeContainer'
+            style={{ backgroundColor: '#fff', borderRadius: '5px', padding: '5px', fontSize: 'small' }}>
+            <NodeToolbar
+                isVisible={selected}
+                position={Position.Right}
+                align={'center'}
+                style={{}}
+            >
+                <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ Add Var</button>
+            </NodeToolbar>
+            <NodeToolbar
+                isVisible={selected}
+                position={Position.Left}
+                align={'center'}
+                style={{}}
+            >
+                <button onClick={deleteSelf} style={{ fontSize: 'x-small', backgroundColor:'#ffa3a3ff'}}>Delete Node</button>
+            </NodeToolbar>
             <label style={{ color: 'black', }}>{id}</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: 'black' }}>
                 {/* <label>Variables Set</label> */}
@@ -78,7 +98,6 @@ function VarSetNode({ id, data }: NodeProps) {
                     </div>
                 ))}
 
-                <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ Add Var</button>
             </div>
 
             <Handle type="target" position={Position.Top} />
@@ -86,10 +105,8 @@ function VarSetNode({ id, data }: NodeProps) {
         </div>
     );
 }
-const edgeTypes = {
-    'custom-edge': CustomEdge,
-};
-function CustomEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps) {
+
+function DependencyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, selected, data }: EdgeProps) {
     const [edgePath, labelX, labelY] = getSmoothStepPath({
         sourceX,
         sourceY,
@@ -118,19 +135,38 @@ function CustomEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
         next[index] = { ...next[index], [field]: value };
         updateGlobal(next);
     };
+
+    const hasDependencies = currentVars.length > 0
     return (
         <>
-            <BaseEdge id={id} path={edgePath} />
+            <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} />
+            <EdgeToolbar
+                isVisible={selected}
+                edgeId={id}
+                x={labelX}
+                y={labelY}
+                // position={Position.Top}
+                // align={'center'}
+                style={{}}
+            >
+
+                <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ add Dependency</button>
+
+            </EdgeToolbar>
             <EdgeLabelRenderer>
                 <div id='EdgeDependenciesContainer' style={{
                     textAlign: 'left',
                     transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
                     pointerEvents: 'all',
                     width: 'min-content',
-                    fontSize: 'x-small'
+                    fontSize: 'x-small',
                 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label>Dependencies</label>
+                    <div style={{
+                        display: 'flex', flexDirection: 'column', gap: '4px',
+                        backgroundColor: hasDependencies ? "#ffffffff" : 'transparent',
+                        borderRadius: 5, padding: '1em'
+                    }}>
+                        {hasDependencies && <label>Dependencies</label>}
                         {currentVars.map((v, i) => (
                             <div key={i} style={{ display: 'flex', gap: '2px' }}>
                                 <input
@@ -150,7 +186,6 @@ function CustomEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
                                 <button onClick={() => removeVar(i)} style={{ padding: '0 4px', cursor: 'pointer' }}>X</button>
                             </div>
                         ))}
-                        <button onClick={addVar}>add dependency</button>
                     </div>
 
                 </div>
@@ -162,33 +197,18 @@ function CustomEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps)
 const nodeTypes = {
     VarSetNode: VarSetNode
 }
+const edgeTypes = {
+    DependencyEdge: DependencyEdge,
+};
 
 const initialNodes: {
     id: string;
-    data: {
-        label: string;
-    };
+    data: Record<string, unknown>;
     position: {
         x: number;
         y: number;
     };
-}[] = [
-        // {
-        //     id: '1',
-        //     data: { label: 'Node A' },
-        //     position: { x: 250, y: 0 },
-        // },
-        // {
-        //     id: '2',
-        //     data: { label: 'Node B' },
-        //     position: { x: 100, y: 200 },
-        // },
-        // {
-        //     id: '3',
-        //     data: { label: 'Node C' },
-        //     position: { x: 350, y: 200 },
-        // },
-    ];
+}[] = [];
 
 const initialEdges: {
     id: string;
@@ -204,6 +224,7 @@ const initialEdges: {
     type: 'buttonedge',
   },
  */
+
 /**
  *  Using React Flow, we can make a node editor in browser to make and edit stories!
  * 
@@ -215,9 +236,7 @@ const initialEdges: {
  *              have the option to create a node for it or if it exists dont do that
  * 
  * 
- * PLAN: do Varset in the node itself, do dependencies in the edges. Make edges have one way arrows.
  * 
- * create custom node and edge component
  * 
  * When exporting, we can just package everything nicely into a JSON. grab nodes, add next[target, target] from any edge with source = node
  */
@@ -226,7 +245,16 @@ export default function StoryEditor() {
     const edgeReconnectSuccessful = useRef(true);
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-    const onConnect = useCallback((params: any) => setEdges((els) => addEdge({ ...params, markerEnd: { type: MarkerType.ArrowClosed }, type: 'custom-edge' }, els)), [],);
+    const [rfInstance, setRfInstance] = useState<ReactFlowInstance<any, any> | null>(null);
+
+
+    const onConnect = useCallback((params: any) => setEdges((els) => addEdge({
+        ...params, markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,  // Explicitly set size to ensure it's not "zeroed out"
+            height: 20,
+        }, type: 'DependencyEdge'
+    }, els)), [],);
     const onReconnectStart = useCallback(() => { edgeReconnectSuccessful.current = false; }, []);
     const onReconnect = useCallback((oldEdge: any, newConnection: Connection) => {
         edgeReconnectSuccessful.current = true;
@@ -244,6 +272,28 @@ export default function StoryEditor() {
         },
         [],
     );
+
+    const flowKey = 'tfcg-test-key';
+    const onSave = useCallback(() => {
+        if (rfInstance) {
+            const flow = rfInstance.toObject();
+            localStorage.setItem(flowKey, JSON.stringify(flow));
+        }
+    }, [rfInstance]);
+
+    const onRestore = useCallback(() => {
+        const restoreFlow = async () => {
+            const flow = JSON.parse(localStorage.getItem(flowKey) || '');
+
+            if (flow) {
+                // const { x = 0, y = 0, zoom = 1 } = flow.viewport;
+                setNodes(flow.nodes || []);
+                setEdges(flow.edges || []);
+            }
+        };
+
+        restoreFlow();
+    }, [setNodes,]);
 
 
     const [fileLoaded, setFileLoaded] = useState(false)
@@ -342,24 +392,14 @@ export default function StoryEditor() {
                         <div style={{ textAlign: 'left', padding: '1em' }} dangerouslySetInnerHTML={{ __html: activeNode?.data || 'ERROR no data found' }} />
 
                     }
-                    {/* <button onClick={() => {
-                        setNodes((prev) => {
-                            const newNode = {
-                                id: activeNode?.id || 'ERROR',
-                                data: {
-                                    label: activeNode?.id || 'ERROR'
-                                },
-                                position: { x: 250, y: 0 },
-                            }
-                            return [...prev, newNode]
-                        })
-                    }}> Click to add as Node </button> */}
                     <button onClick={() => {
                         setNodes((prev) => {
                             const newNode = {
                                 id: activeNode?.id || 'ERROR',
                                 data: {
-                                    label: activeNode?.id || 'ERROR'
+                                    label: activeNode?.id || 'ERROR',
+                                    content: [...activeNode?.data || ''],   // create a shallow copy
+                                    activeNode: activeNode, // reference to activeNode for showToolbar
                                 },
                                 position: { x: 250, y: 0 },
                                 type: 'VarSetNode'
@@ -377,11 +417,12 @@ export default function StoryEditor() {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onNodeClick={(onNodeClick)}
-                snapToGrid
+                onInit={setRfInstance}
                 onReconnect={onReconnect}
                 onReconnectStart={onReconnectStart}
                 onReconnectEnd={onReconnectEnd}
                 onConnect={onConnect}
+                snapToGrid
                 fitView
                 attributionPosition="top-right"
             >
@@ -391,6 +432,11 @@ export default function StoryEditor() {
                 <button onClick={() => {
                     console.log(nodes, edges);
                 }}> click to export </button>
+
+                <button onClick={onSave}>Save</button>
+                <button onClick={onRestore}>Load</button>
+                {localStorage.getItem(flowKey) ? <div> existing data exists!</div> : <div> no data found yet</div>
+                }
 
             </div>
         </div>
