@@ -26,6 +26,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { renderAsync } from 'docx-preview';
 import { ERROR_NODE, type DataNode, } from '../NodeTypes';
+import { color } from 'motion';
 
 
 /**
@@ -63,8 +64,33 @@ function VarSetNode({ id, data, selected }: NodeProps) {
                 isVisible={selected}
                 position={Position.Right}
                 align={'center'}
-                style={{}}
+                style={{ alignContent: 'left' }}
             >
+                <div id='Config Panel'
+                    style={{
+                        backgroundColor: '#59597cff', color: '#fff', borderRadius: '5px',
+                        width: '200px',
+                        minHeight: '100px'
+
+                    }}
+                >
+                    Config panel. Change Type, configure auto transition + delay & duration. Other options you might want
+                    <br/>
+                    <input type="radio" name='type' id='narration' value={'narration'} defaultChecked />
+                    <label htmlFor="narration">Narration</label>
+
+                    <input type="radio" name='type' id='action' value={'action'} />
+                    <label htmlFor="action">Action</label>
+                    <br/>
+                    <input id='doAuto' type='checkbox'/>
+                    <label htmlFor='doAuto'>Auto Transition?</label>
+                    <br/>
+                    <span>duration</span>
+                    <input type='text'/>
+                    <span>startDelay</span>
+                    <input type='text'/>
+
+                </div>
                 <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ Add Var</button>
             </NodeToolbar>
             <NodeToolbar
@@ -73,7 +99,7 @@ function VarSetNode({ id, data, selected }: NodeProps) {
                 align={'center'}
                 style={{}}
             >
-                <button onClick={deleteSelf} style={{ fontSize: 'x-small', backgroundColor:'#ffa3a3ff'}}>Delete Node</button>
+                <button onClick={deleteSelf} style={{ fontSize: 'x-small', backgroundColor: '#ffa3a3ff' }}>Delete Node</button>
             </NodeToolbar>
             <label style={{ color: 'black', }}>{id}</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: 'black' }}>
