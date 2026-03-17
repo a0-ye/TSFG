@@ -265,7 +265,6 @@ export default function StoryEditor() {
             // read from the ghostDiv
             const tables = ghostDiv.querySelectorAll('article table');
             const nodeMap = new Map()
-            const journalMap = new Map<string, JournalNode>()
 
             // Everything is based on the Tables get created first, so if there is JSON data for a non-existent table in the DOCX, no DataNode will ever be created
             const tableNodes = Array.from(tables).map((table, index) => {
