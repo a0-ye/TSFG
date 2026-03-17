@@ -22,7 +22,7 @@ import {
 
 import '@xyflow/react/dist/style.css';
 import { renderAsync } from 'docx-preview';
-import { ERROR_NODE, type DataNode, type JournalNode } from '../NodeTypes';
+import { ERROR_NODE, type DataNode, } from '../NodeTypes';
 
 
 /**
