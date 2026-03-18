@@ -26,16 +26,19 @@ import {
 import '@xyflow/react/dist/style.css';
 import { renderAsync } from 'docx-preview';
 import { ERROR_NODE, type DataNode, } from '../NodeTypes';
-import { color } from 'motion';
 
+type varSet = { key: string, operation: string, value: string, persist: boolean }
 
 /**
  * Node that can have vars set. Stored in the node's data prop as vars: data.vars
  */
 function VarSetNode({ id, data, selected }: NodeProps) {
     const { setNodes, deleteElements } = useReactFlow();
-    const currentVars = (data?.vars as Array<{ key: string, value: string }>) || [];
-    const updateGlobal = (newVars: Array<{ key: string, value: string }>) => {
+    const currentVars = (data?.vars as Array<varSet>) || [];
+    /**
+     * updates the global node.data.vars
+     */
+    const updateNodeDataVars = (newVars: Array<varSet>) => {
         setNodes((nds) => nds.map((node) => {
             if (node.id === id) {
                 return { ...node, data: { ...node.data, vars: newVars } };
@@ -43,20 +46,53 @@ function VarSetNode({ id, data, selected }: NodeProps) {
             return node;
         }));
     };
-    const addVar = () => updateGlobal([...currentVars, { key: '', value: '' }]);
+    const addVar = () => updateNodeDataVars([...currentVars, { key: '', operation: '=', value: '', persist: false }]);
     const removeVar = (index: number) => {
-        updateGlobal(currentVars.filter((_, i) => i !== index));
+        updateNodeDataVars(currentVars.filter((_, i) => i !== index));
     };
     const updateVar = (index: number, field: string, value: string) => {
         const next = [...currentVars];
         next[index] = { ...next[index], [field]: value };
-        updateGlobal(next);
+        updateNodeDataVars(next);
     };
 
-    const deleteSelf = () => {
+    const deleteNode = () => {
         deleteElements({ nodes: [{ id }] });
     }
 
+    const updateType = (newType: string) => {
+        setNodes((nds) => nds.map((node) => {
+            if (node.id === id) {
+                return { ...node, data: { ...node.data, type: newType } };
+            }
+            return node;
+        }));
+    }
+    /**
+     * transition: {
+            auto:false,
+            duration:1,
+            startDelay:0,
+            }
+     * 
+     */
+    const updateTransition = (field: string, newValue: string | boolean) => {
+        setNodes((nds) => nds.map((node) => {
+            if (node.id === id) {
+                // console.log(`updating node ${id} transition with ${field}:${newValue} `);
+                
+                const newTransition = {
+                    ...(node.data.transition as {
+                        auto: boolean,
+                        duration: number,
+                        startDelay: number,
+                    }), [field]: newValue
+                }
+                return { ...node, data: { ...node.data, transition: newTransition } };
+            }
+            return node;
+        }));
+    }
     return (
         <div id='VarSetNodeContainer'
             style={{ backgroundColor: '#fff', borderRadius: '5px', padding: '5px', fontSize: 'small' }}>
@@ -75,23 +111,27 @@ function VarSetNode({ id, data, selected }: NodeProps) {
                     }}
                 >
                     Config panel. Change Type, configure auto transition + delay & duration. Other options you might want
-                    <br/>
-                    <input type="radio" name='type' id='narration' value={'narration'} defaultChecked />
+                    <br />
+                    <input type="radio" name='type' id='narration' value={'narration'} defaultChecked
+                        onChange={(e) => updateType(e.target.value)}
+                    />
                     <label htmlFor="narration">Narration</label>
-
-                    <input type="radio" name='type' id='action' value={'action'} />
+                    <input type="radio" name='type' id='action' value={'action'}
+                        onChange={(e) => updateType(e.target.value)}
+                    />
                     <label htmlFor="action">Action</label>
-                    <br/>
-                    <input id='doAuto' type='checkbox'/>
-                    <label htmlFor='doAuto'>Auto Transition?</label>
-                    <br/>
+                    <br />
+                    <input id='doAuto' type='checkbox' onChange={(e) => updateTransition('auto', e.target.checked)}/>
+                    <label htmlFor='doAuto'  >Auto Transition?</label>
+                    <br />
                     <span>duration</span>
-                    <input type='text'/>
+                    <input type='text' onChange={(e) => updateTransition('duration', e.target.value)}/>
                     <span>startDelay</span>
-                    <input type='text'/>
+                    <input type='text'onChange={(e) => updateTransition('startDelay', e.target.value)} />
 
                 </div>
                 <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ Add Var</button>
+                <input type='color' /> // TODO change NODE COLOR!
             </NodeToolbar>
             <NodeToolbar
                 isVisible={selected}
@@ -99,13 +139,22 @@ function VarSetNode({ id, data, selected }: NodeProps) {
                 align={'center'}
                 style={{}}
             >
-                <button onClick={deleteSelf} style={{ fontSize: 'x-small', backgroundColor: '#ffa3a3ff' }}>Delete Node</button>
+                <button onClick={deleteNode} style={{ fontSize: 'x-small', backgroundColor: '#ffa3a3ff' }}>Delete Node</button>
             </NodeToolbar>
             <label style={{ color: 'black', }}>{id}</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: 'black' }}>
                 {/* <label>Variables Set</label> */}
                 {currentVars.map((v, i) => (
                     <div key={i} style={{ display: 'flex', gap: '1px' }}>
+                        <div >
+                            <label style={{ fontSize: 'xx-small' }}> persist? </label>
+                            <br />
+                            <input
+                                type='checkbox'
+                                name='persist'
+                                defaultChecked={v.persist}
+                                onChange={(e) => updateVar(i, 'persist', e.target.value)} />
+                        </div>
                         <input
                             className="nodrag"
                             placeholder="Var"
@@ -113,6 +162,16 @@ function VarSetNode({ id, data, selected }: NodeProps) {
                             onChange={(e) => updateVar(i, 'key', e.target.value)}
                             style={{ width: '60px', fontSize: 'xx-small' }}
                         />
+                        <select
+                            id="opSelect"
+                            name="op"
+                            onChange={(e) => updateVar(i, 'operation', e.target.value)}
+                            defaultValue={v.operation}
+                        >
+                            <option value="=">=</option>
+                            <option value="+=">++</option>
+                            <option value="-=">--</option>
+                        </select>
                         <input
                             className="nodrag"
                             placeholder="Value"
@@ -132,6 +191,8 @@ function VarSetNode({ id, data, selected }: NodeProps) {
     );
 }
 
+type varDep = { key: string, operation: string, value: string }
+
 function DependencyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, selected, data }: EdgeProps) {
     const [edgePath, labelX, labelY] = getSmoothStepPath({
         sourceX,
@@ -141,8 +202,8 @@ function DependencyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, sel
     });
     const { setEdges } = useReactFlow();
 
-    const currentVars = (data?.vars as Array<{ key: string, value: string }>) || [];
-    const updateGlobal = (newVars: Array<{ key: string, value: string }>) => {
+    const currentVars = (data?.vars as Array<varDep>) || [];
+    const updateGlobal = (newVars: Array<varDep>) => {
         setEdges((edges) => edges.map((edge) => {
             if (edge.id === id) {
                 return { ...edge, data: { ...edge.data, vars: newVars } };
@@ -151,7 +212,7 @@ function DependencyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, sel
         }));
     };
 
-    const addVar = () => updateGlobal([...currentVars, { key: '', value: '' }]);
+    const addVar = () => updateGlobal([...currentVars, { key: '', operation: '==', value: '' }]);
     const removeVar = (index: number) => {
         updateGlobal(currentVars.filter((_, i) => i !== index));
     };
@@ -202,6 +263,18 @@ function DependencyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, sel
                                     onChange={(e) => updateVar(i, 'key', e.target.value)}
                                     style={{ width: '60px', fontSize: 'inherit' }}
                                 />
+                                <select
+                                    id="opSelect"
+                                    name="op"
+                                    onChange={(e) => updateVar(i, 'operation', e.target.value)}
+                                    defaultValue={v.operation}
+                                >
+                                    <option value="==">==</option>
+                                    <option value="<"> &#60; </option>
+                                    <option value="<=">&#60;= </option>
+                                    <option value=">">&#62;</option>
+                                    <option value=">=">&#62;=</option>
+                                </select>
                                 <input
                                     className="nodrag"
                                     placeholder="Value"
@@ -424,8 +497,13 @@ export default function StoryEditor() {
                                 id: activeNode?.id || 'ERROR',
                                 data: {
                                     label: activeNode?.id || 'ERROR',
-                                    content: [...activeNode?.data || ''],   // create a shallow copy
-                                    activeNode: activeNode, // reference to activeNode for showToolbar
+                                    content: [...activeNode?.data || ''],   // create a shallow copy of the HTML data array
+                                    type: 'narration', // default narration
+                                    transition: {
+                                        auto: false,
+                                        duration: 1,
+                                        startDelay: 0,
+                                    }
                                 },
                                 position: { x: 250, y: 0 },
                                 type: 'VarSetNode'
