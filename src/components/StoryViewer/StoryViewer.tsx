@@ -111,7 +111,8 @@ export default function StoryViewer() {
         if (!file) { return; }
         try {
             const jsonData = JSON.parse(await file.text())
-            // console.log(jsonData);
+
+            console.log(jsonData);
             const allNodes: Array<any> = jsonData.nodes    // array of node objects Fix typing later
             const edges: Array<any> = jsonData.edges
             console.log(allNodes, edges)
@@ -175,7 +176,8 @@ export default function StoryViewer() {
                 jNode.data['vars'] = filteredVars
             });
             setJournalMap(journalMap)
-            addPassage('0-001')  // DEBUG AUTO ADD THE FIRST ONE NEED TO FIX ==========================================================================================================
+            
+            addPassage((edgeMap.get('START') as DataEdge[])[0].target ) // Start should be guraranteed to exist
         } catch (error) {
             console.error("Failed to load story nodes from DOCX ", error);
         }

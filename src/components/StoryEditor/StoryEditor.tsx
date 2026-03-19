@@ -55,7 +55,25 @@ const edgeTypes = {
 
 export default function StoryEditor() {
     const edgeReconnectSuccessful = useRef(true);
-    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([
+        {
+            id: 'START',
+            position: { x: 0, y: 0 },
+            data: {
+                label: "START",
+                content: [''],   // create a shallow copy of the HTML data array
+                type: 'narration', // default narration. This type is the data portion for story rendering vs the type for ReactFlow
+                vars: [],
+                transition: {
+                    auto: true,
+                    delayAuto: 0,
+                    duration: 0,
+                    startDelay: 0,
+                }
+            },
+
+        }
+    ]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance<any, any> | null>(null);
 
@@ -244,7 +262,7 @@ export default function StoryEditor() {
             padding: 0,
             boxSizing: 'border-box',
         }}>
-            <div id='left-panel' style={{ display: 'grid', gridTemplateRows: '50vh 50vh', maxWidth:300 }}>
+            <div id='left-panel' style={{ display: 'grid', gridTemplateRows: '50vh 50vh', maxWidth: 300 }}>
                 <div style={{ overflow: 'scroll' }}>
                     {!fileLoaded ? <div>
                         <p>
@@ -360,7 +378,7 @@ export default function StoryEditor() {
                     <Background />
                 </ReactFlow>
             </div>
-            <div id='right-panel' style={{ padding: '1em', textAlign: 'left', maxWidth:250 }}>
+            <div id='right-panel' style={{ padding: '1em', textAlign: 'left', maxWidth: 250 }}>
                 <label> Loaded File: {flowKey}</label>
                 <input placeholder='Save Name' defaultValue={'default'} onChange={(e) => {
 
