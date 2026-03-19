@@ -15,7 +15,7 @@ type Transition = {
  * Node that can have vars set. Stored in the node's data prop as vars: data.vars
  */
 export function VarSetNode({ id, data, selected }: NodeProps) {
-    const { setNodes, deleteElements, updateNodeData } = useReactFlow();
+    const { deleteElements, updateNodeData } = useReactFlow();
     const currentVars = (data?.vars as Array<varSet>) || [];
 
     const narrationColor = '#fff'

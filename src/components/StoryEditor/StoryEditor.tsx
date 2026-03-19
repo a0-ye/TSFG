@@ -10,17 +10,14 @@ import {
     type Connection,
     type NodeMouseHandler,
     MarkerType,
-    useReactFlow,
     type ReactFlowInstance,
     type Edge,
     type Node,
-    useViewport,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
 import { renderAsync } from 'docx-preview';
 import { VarSetNode, DependencyEdge, JournalEditNode } from './FlowNodes';
-import { view } from 'motion/react-client';
 
 
 
