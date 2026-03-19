@@ -1,4 +1,3 @@
-import type { FlagValue } from "./utils";
 
 /**
   ```
