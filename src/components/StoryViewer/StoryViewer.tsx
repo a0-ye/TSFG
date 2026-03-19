@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { type DataEdge, type DataNode, type JournalNode, } from '../ViewerTypes'
 import PassageBox from '../PassageBox/PassageBox'
 import { castValue, type dataVars, type FlagValue } from '../utils'
+import Journal from '../Journal/Journal'
 
 
 
@@ -36,7 +37,7 @@ export default function StoryViewer() {
     const updateFlags = (
         vars: dataVars[]
     ): void => {
-        (vars || [] ).forEach((entry) => {
+        (vars || []).forEach((entry) => {
             const key = entry.key
             const operation = entry.operation
             const incomingValue = entry.value
@@ -77,8 +78,8 @@ export default function StoryViewer() {
 
     }
 
-
-    const [displayedJournalEntries, setDisplayedJournalEntries] = useState<JournalNode[]>([])    // list of nodes. should be based on groupID used to keep track of chronological entries
+    // list of nodes. should be based on groupID used to keep track of chronological entries
+    const [displayedJournalEntries, setDisplayedJournalEntries] = useState<JournalNode[]>([])
 
     /**
      * Runs when the game is restarted. NOT WIPED, but restarted.
@@ -118,10 +119,15 @@ export default function StoryViewer() {
 
             const narrativeMap = new Map<string, any>(allNodes.filter((node) => { return node.type === 'VarSetNode' }).map(
                 (node: any) => {
+                    console.log(node);
+
+                    const filteredVars = (node.data.vars || []).filter(({ key, operation, value }: { key: string, operation: string, value: string }) => {
+                        return key != '' && operation != '' && value != ''
+                    })
                     const newDataNode: DataNode = {
                         id: node.id,
                         type: node.data.type,    // narrative or action
-                        data: node.data
+                        data: { ...node.data, vars: filteredVars }
                     }
                     return [node.id, newDataNode]
                 }));
@@ -131,18 +137,44 @@ export default function StoryViewer() {
             // edge map is based on sources. get(sourceID) yields an array of Edge objects
             const edgeMap = new Map<string, DataEdge[]>()
             edges.forEach((edge) => {
+                const filteredVars = (edge.data?.vars || []).filter(({ key, operation, value }: { key: string; operation: string; value: string | number; }) => {
+                    return key != '' && operation != '' && value != ''
+                })
                 const newEdge: DataEdge = {
                     id: edge.id,
                     source: edge.source,
                     target: edge.target,
-                    data: edge.data
+                    data: {...edge.data, vars:filteredVars}
                 }
                 edgeMap.set(edge.source, [...edgeMap.get(edge.source) || [], newEdge])
             })
 
             setNodeMap(narrativeMap)
-            setJournalMap(journalMap)
             setEdgeMap(edgeMap)
+
+            const walkGroupPriority = (node: JournalNode, groupID: string, priority: number) => {
+                node.groupID = groupID
+                node.priority = priority
+                const nodeEdge = edgeMap.get(node.id)
+
+                if (nodeEdge && nodeEdge.length > 0) {
+                    walkGroupPriority(journalMap.get(nodeEdge[0].target) as JournalNode, groupID, priority + 1)
+                }
+            }
+
+            // NOTE: this can be calculated in the editor, using node connection calculations. IDK how to but it should be a better way than this...
+            // walk from nodes that are NOT targets (aka SOURCE nodes only) 
+            const targets = new Set(edges.map(e => e.target));
+            journalMap.forEach((jNode) => {
+                if (!targets.has(jNode.id)) {
+                    walkGroupPriority(jNode, `${jNode.id}-Group`, 0);
+                }
+                const filteredVars = (jNode.data.vars || []).filter(({ key, operation, value }: { key: string; operation: string; value: string | number; }) => {
+                    return key != '' && operation != '' && value != ''
+                })
+                jNode.data['vars'] = filteredVars
+            });
+            setJournalMap(journalMap)
             addPassage('0-001')  // DEBUG AUTO ADD THE FIRST ONE NEED TO FIX ==========================================================================================================
         } catch (error) {
             console.error("Failed to load story nodes from DOCX ", error);
@@ -162,13 +194,13 @@ export default function StoryViewer() {
 
     return (
         <>
-            {/* <Journal
+            <Journal
                 flags={flags}
                 setFlags={setFlags}
                 displayedJournalEntries={displayedJournalEntries}
                 setDisplayedJournalEntries={setDisplayedJournalEntries}
                 journalMap={journalMap}
-            ></Journal> */}
+            ></Journal>
 
             <div id='triColSplit' style={{ display: 'grid', gridTemplateColumns: ' 15vw 70vw 15vw ' }}>
                 <div id='leftContent' className='sideCol' style={{}}></div>

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "motion/react"
 import { evaluateDependencies, type FlagValue } from "../utils";
 import { ERROR_DATANODE, type DataEdge, type DataNode } from "../ViewerTypes";
@@ -51,6 +51,29 @@ export default function PassageBox(props: PassageBoxProps) {
 
     });
 
+    useEffect(() => {
+        // 1. Guard: Only run if 'auto' is true and we have a target to move to
+        const { auto, delayAuto } = passageNode.data.transition;
+
+        if (auto) {
+            // for every narration passage, load all of them.
+            // 2. Set the timer
+            const timer = setTimeout(() => {
+                console.log(`delaying adding new passages for ${delayAuto} seconds`);
+                
+                const narrations = next.filter((node)=>{
+                    return node.type == 'narration'
+                })
+                narrations.forEach((node)=>props.addPassage(node.id))
+                
+            }, (Number(delayAuto) || 0.5) * 1000);
+
+            // 3. Cleanup: If the user clicks something else or leaves the node, 
+            // kill the timer so addPassage() doesn't fire twice.
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
     return <>
         <motion.div key={props.index}
             style={{
@@ -73,7 +96,9 @@ export default function PassageBox(props: PassageBoxProps) {
                 style={{
                     // backgroundColor: lockoutChoices?  'transparent' : "#70707052"
                 }}>
-                {passageNode.data.transition.auto ? <></> :
+                {passageNode.data.transition.auto ? <>
+                    {/* Should do nothing. no actions. nothin. Maybe debug stuff can live here but nothing else. */}
+                </> :
 
                     next.map((node, index) => {
                         if (node.type == 'action') {

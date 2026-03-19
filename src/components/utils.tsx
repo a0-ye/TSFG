@@ -44,7 +44,7 @@ export function evaluateDependency(
 }
 /**
  * Checks if all dependencies for a given node are met according to the given set of flags
- * @param vars {key, operation, value}
+ * @param vars Array of DataVars composed of {key, operation, value}
  * @param flags The Record containing ALL flags
  * @returns Boolean for if all the dependencies for the given node are met
  */

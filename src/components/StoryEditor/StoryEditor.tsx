@@ -14,11 +14,13 @@ import {
     type ReactFlowInstance,
     type Edge,
     type Node,
+    useViewport,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
 import { renderAsync } from 'docx-preview';
 import { VarSetNode, DependencyEdge, JournalEditNode } from './FlowNodes';
+import { view } from 'motion/react-client';
 
 
 
@@ -63,7 +65,7 @@ export default function StoryEditor() {
     const onConnect = useCallback((params: Connection) => {
         setEdges((eds) => {
             // 1. Look up the source node to see what "kind" of node is starting the connection
-            const sourceNode = nodes.find((node) => {return node.id === params.source});
+            const sourceNode = nodes.find((node) => { return node.id === params.source });
 
             let edgeType = 'DependencyEdge';
             let markerStyle = MarkerType.ArrowClosed;
@@ -187,7 +189,6 @@ export default function StoryEditor() {
                 const rows = Array.from(htmlTable.rows);
                 const rawID = rows[0].cells[0].textContent?.trim() || `noIDError|Table-${index}`;
 
-
                 // slice from index 1 to capture everything after the ID row
                 const contentData = rows.slice(1).map(row =>
                     Array.from(row.cells).map(cell => cell.innerHTML)[0]
@@ -257,6 +258,14 @@ export default function StoryEditor() {
 
                     }
                     <button onClick={() => {
+                        if (!rfInstance || !activeNode) return;
+                        const domNode = document.querySelector('.react-flow');
+                        if (!domNode) return;
+                        const { left, top, width, height } = domNode.getBoundingClientRect();
+                        const center = rfInstance.screenToFlowPosition({
+                            x: left + width / 2,
+                            y: top + height / 2,
+                        });
                         setNodes((prev) => {
                             const newNode = {
                                 id: activeNode?.id || 'ERROR',
@@ -264,27 +273,39 @@ export default function StoryEditor() {
                                     label: activeNode?.id || 'ERROR',
                                     content: [...activeNode?.data || ''],   // create a shallow copy of the HTML data array
                                     type: 'narration', // default narration. This type is the data portion for story rendering vs the type for ReactFlow
+                                    vars: [],
                                     transition: {
                                         auto: false,
+                                        delayAuto: 1,
                                         duration: 1,
                                         startDelay: 0,
                                     }
                                 },
-                                position: { x: 250, y: 0 },
+                                position: center,
                                 type: 'VarSetNode'
                             }
                             return [...prev, newNode]
                         })
                     }}> Click to add as VarSetNode </button>
                     <button onClick={() => {
+                        if (!rfInstance || !activeNode) return;
+                        const domNode = document.querySelector('.react-flow');
+                        if (!domNode) return;
+                        const { left, top, width, height } = domNode.getBoundingClientRect();
+                        const center = rfInstance.screenToFlowPosition({
+                            x: left + width / 2,
+                            y: top + height / 2,
+                        });
                         setNodes((prev) => {
                             const newNode = {
                                 id: activeNode?.id || 'ERROR',
                                 data: {
                                     label: activeNode?.id || 'ERROR',
                                     content: [...activeNode?.data || ''],   // create a shallow copy of the HTML data array
+                                    persist: false,
+                                    vars: []
                                 },
-                                position: { x: 250, y: 0 },
+                                position:center,
                                 type: 'JournalEditNode'
                             }
                             return [...prev, newNode]

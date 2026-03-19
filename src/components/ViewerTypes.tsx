@@ -34,6 +34,7 @@ export interface DataNode {
         }[],
         transition:{
             auto:boolean,
+            delayAuto:string|number,
             duration:string|number,
             startDelay:string|number,
         },
@@ -46,7 +47,6 @@ export interface DataNode {
 export interface JournalNode extends DataNode { // type 4
     groupID:string,
     priority:number,    // priority. Higher means its displayed over lower ones if their conditions are all met
-    dependencies: Record<string,FlagValue>,   // object with string: string | number | boolean
     persist:boolean     //persist on restart
 }
 
@@ -74,6 +74,24 @@ export const ERROR_DATANODE:DataNode = {
         type:'ERROR',
         transition:{
             auto:false,
+            delayAuto:Infinity,
+            duration:'ERROR',
+            startDelay:'ERROR',
+        }
+    }, 
+};
+export const ERROR_JOURNALNODE:JournalNode = {
+    id:'ERROR', // id
+    type: 'ERROR',   // narration, action, journal
+    groupID:'ERROR',
+    priority:Infinity,    
+    persist:false, 
+    data: {
+        content:['ERROR','ERROR','ERROR'],
+        type:'ERROR',
+        transition:{
+            auto:false,
+            delayAuto:Infinity,
             duration:'ERROR',
             startDelay:'ERROR',
         }

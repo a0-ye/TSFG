@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { type JournalNode } from "../ViewerTypes";
+import { ERROR_JOURNALNODE, type JournalNode } from "../ViewerTypes";
 import { evaluateDependencies, type FlagValue } from "../utils";
 
 
@@ -37,15 +37,16 @@ interface journalProps {
 
 export default function Journal(props: journalProps) {
     /**
-     * on journalFlag update, grab all dependency-met JournalNodes. keep only the highest priority per groupID. Replace entries
+     * on journalFlag update
+     * 1. grab all dependency-met JournalNodes
+     * 2. keep only the highest priority per groupID. Replace entries
+     * 
      */
     useEffect(() => {
         // Filter out based on condition: node's dependency flags' currentValue vs requirement is true
         const allJournalNodes = Array.from(props.journalMap.values())
-
-
         const met = allJournalNodes.filter((node: JournalNode) => {
-            return evaluateDependencies(node, props.flags)
+            return evaluateDependencies(node.data.vars || [], props.flags)
         });
         console.log('met', met);
 
@@ -66,7 +67,7 @@ export default function Journal(props: journalProps) {
         props.setDisplayedJournalEntries((prev: JournalNode[]) => {
             // map all previous values to the most updated version from the Map
             const updatedEntries: JournalNode[] = prev.map((node) => {
-                return groupMap.get(node.groupID) || ERROR_JOURNAL_NODE
+                return groupMap.get(node.groupID) || ERROR_JOURNALNODE
             })
             // for every valid entry, entry doesnt exist in updatedEntries, add it
             groupMap.forEach((node) => {
@@ -145,12 +146,12 @@ export default function Journal(props: journalProps) {
             }}>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
                     {props.displayedJournalEntries[leftPageIdx]?.data ?
-                        <div dangerouslySetInnerHTML={{ __html: props.displayedJournalEntries[leftPageIdx].data[0] }} />
+                        <div dangerouslySetInnerHTML={{ __html: props.displayedJournalEntries[leftPageIdx].data.content[0] }} />
                         : <div> {`No Content found for index ${leftPageIdx}`} </div>}
                 </div>
                 <div style={{ border: 'solid black 2px', backgroundColor: '#44433aff', margin: 5, width: 650, height: 600 }}>
                     {props.displayedJournalEntries[leftPageIdx + 1]?.data ?
-                        <div dangerouslySetInnerHTML={{ __html: props.displayedJournalEntries[leftPageIdx + 1].data[0] }} />
+                        <div dangerouslySetInnerHTML={{ __html: props.displayedJournalEntries[leftPageIdx + 1].data.content[0] }} />
                         : <div> {`No Content found for index ${leftPageIdx + 1}`} </div>}
                 </div>
             </div>

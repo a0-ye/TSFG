@@ -4,6 +4,12 @@ import { useState } from "react";
 
 
 type varSet = { key: string, operation: string, value: string, persist: boolean }
+type Transition = {
+    auto: boolean,
+    delayAuto: number,
+    duration: number,
+    startDelay: number,
+}
 
 /**
  * Node that can have vars set. Stored in the node's data prop as vars: data.vars
@@ -31,7 +37,7 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
     const removeVar = (index: number) => {
         updateNodeDataVars(currentVars.filter((_, i) => i !== index));
     };
-    const updateVar = (index: number, field: string, value: string) => {
+    const updateVar = (index: number, field: string, value: string | boolean) => {
         const next = [...currentVars];
         next[index] = { ...next[index], [field]: value };
         updateNodeDataVars(next);
@@ -42,38 +48,35 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
     }
 
     const updateType = (newType: string) => {
-        setNodes((nds) => nds.map((node) => {
-            if (node.id === id) {
-                return { ...node, data: { ...node.data, type: newType } };
-            }
-            return node;
-        }));
+        updateNodeData(id, { type: newType })
+        // setNodes((nds) => nds.map((node) => {
+        //     if (node.id === id) {
+        //         return { ...node, data: { ...node.data, type: newType } };
+        //     }
+        //     return node;
+        // }));
     }
-    /**
-     * transition: {
-            auto:false,
-            duration:1,
-            startDelay:0,
-            }
-     * 
-     */
     const updateTransition = (field: string, newValue: string | boolean) => {
-        setNodes((nds) => nds.map((node) => {
-            if (node.id === id) {
-                // console.log(`updating node ${id} transition with ${field}:${newValue} `);
+        const newTransition = {
+            ...(data.transition as Transition), [field]: newValue
+        }
+        console.log(`updating transition ${field} = ${newValue}`);
 
-                const newTransition = {
-                    ...(node.data.transition as {
-                        auto: boolean,
-                        duration: number,
-                        startDelay: number,
-                    }), [field]: newValue
-                }
-                return { ...node, data: { ...node.data, transition: newTransition } };
-            }
-            return node;
-        }));
+        updateNodeData(id, { transition: newTransition })
+        // setNodes((nds) => nds.map((node) => {
+        //     if (node.id === id) {
+        //         // console.log(`updating node ${id} transition with ${field}:${newValue} `);
+
+        //         const newTransition = {
+        //             ...(node.data.transition as Transition), [field]: newValue
+        //         }
+        //         return { ...node, data: { ...node.data, transition: newTransition } };
+        //     }
+        //     return node;
+        // }));
     }
+
+    const dataTransition = data.transition as Transition
     return (
         <div id='VarSetNodeContainer'
             style={{ backgroundColor: nodeColor, borderRadius: '5px', padding: '5px', fontSize: 'small' }}>
@@ -108,13 +111,23 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
                     />
                     <label htmlFor="action">Action</label>
                     <br />
-                    <input id='doAuto' type='checkbox' onChange={(e) => updateTransition('auto', e.target.checked)} />
+                    <input id='doAuto'
+                        type='checkbox' defaultChecked={dataTransition.auto}
+                        onChange={(e) => updateTransition('auto', e.target.checked)}
+                    />
                     <label htmlFor='doAuto'  >Auto Transition?</label>
                     <br />
+
+                    {dataTransition.auto && <>
+                        <label> Delay Auto by n seconds </label>
+                        <input key="input-delayAuto" type='number' defaultValue={dataTransition.delayAuto} onChange={(e) => updateTransition('delayAuto', e.target.value)} />
+                    </>
+                    }
                     <span>duration</span>
-                    <input type='text' onChange={(e) => updateTransition('duration', e.target.value)} />
+                    <input key="input-duration" type='number' defaultValue={dataTransition.duration} onChange={(e) => updateTransition('duration', e.target.value)} />
                     <span>startDelay</span>
-                    <input type='text' onChange={(e) => updateTransition('startDelay', e.target.value)} />
+                    <input key="input-startDelay" type='number' defaultValue={dataTransition.startDelay} onChange={(e) => updateTransition('startDelay', e.target.value)} />
+
 
                 </div>
                 <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ Add Var</button>
@@ -142,7 +155,7 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
                                 type='checkbox'
                                 name='persist'
                                 defaultChecked={v.persist}
-                                onChange={(e) => updateVar(i, 'persist', e.target.value)} />
+                                onChange={(e) => updateVar(i, 'persist', e.target.checked)} />
                         </div>
                         <input
                             className="nodrag"
@@ -197,13 +210,6 @@ export function JournalEditNode({ id, data, selected }: NodeProps) {
      * updates the global node.data.vars
      */
     const updateNodeDataVars = (newVars: Array<varSet>) => {
-        // setNodes((nds) => nds.map((node) => {
-        //     if (node.id === id) {
-        //         return { ...node, data: { ...node.data, vars: newVars } };
-        //     }
-        //     return node;
-        // }));
-
         updateNodeData(id, { vars: newVars })
     };
     const addVar = () => updateNodeDataVars([...currentVars, { key: '', operation: '=', value: '', persist: false }]);
@@ -256,10 +262,10 @@ export function JournalEditNode({ id, data, selected }: NodeProps) {
             <label style={{ color: 'black', }}>{id}</label>
 
             <div style={{ borderBottom: 'black solid 2px' }}>
-                <label>Group ID </label>
-                <input placeholder="GroupID " onChange={(e) => { e.target.value }} /> <br />
-                <label>Priority </label>
-                <input placeholder="Prioirty " onChange={(e) => { e.target.value }} />
+                <label>Persist: </label>
+                <input type='checkbox' onChange={(e) => {
+                    updateNodeData(id, { persist: e.target.checked })
+                }} /> <br />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: 'black' }}>
                 {/* <label>Variables Set</label> */}
