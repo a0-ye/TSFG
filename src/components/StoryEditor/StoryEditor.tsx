@@ -102,7 +102,7 @@ export default function StoryEditor() {
         [],
     );
 
-    const [flowKey, setFlowKey] = useState('myKey')
+    const [flowKey, setFlowKey] = useState('default')
     const onSave = useCallback(() => {
         if (rfInstance) {
             if (localStorage.getItem(flowKey)) {
@@ -110,6 +110,7 @@ export default function StoryEditor() {
             }
             const flow = rfInstance.toObject();
             localStorage.setItem(flowKey, JSON.stringify(flow));
+            alert(` Saved as "${flowKey}" in browser local storage`)
         } else {
             console.log('no rf instance?');
 
@@ -131,6 +132,7 @@ export default function StoryEditor() {
                 setNodes(flow.nodes || []);
                 setEdges(flow.edges || []);
             }
+            alert(`loaded save data "${flowKey}"`)
         };
 
         restoreFlow();
@@ -158,6 +160,27 @@ export default function StoryEditor() {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     }
+    const onImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const flow = JSON.parse(e.target?.result as string);
+                if (flow) {
+                    setNodes(flow.nodes || []);
+                    setEdges(flow.edges || []);
+                    if (flow.viewport) {
+                        rfInstance?.setViewport(flow.viewport, { duration: 1000 });
+                    }
+                }
+            } catch (err) {
+                alert("Invalid JSON file!");
+            }
+        };
+        reader.readAsText(file);
+    };
 
 
     const [fileLoaded, setFileLoaded] = useState(false)
@@ -215,10 +238,13 @@ export default function StoryEditor() {
     return <>
         <div id='StoryEditorBase' style={{
             width: '100vw', height: '100vh',
-            display: 'grid', gridTemplateColumns: '300px 1fr 100px',
-
+            display: 'flex',          // Changed to Flex
+            overflow: 'hidden',
+            margin: 0,
+            padding: 0,
+            boxSizing: 'border-box',
         }}>
-            <div id='left panel' style={{ display: 'grid', gridTemplateRows: '50vh 50vh', }}>
+            <div id='left-panel' style={{ display: 'grid', gridTemplateRows: '50vh 50vh', maxWidth:300 }}>
                 <div style={{ overflow: 'scroll' }}>
                     {!fileLoaded ? <div>
                         <p>
@@ -248,12 +274,7 @@ export default function StoryEditor() {
                         </div>
                     )}
                 </div>
-                <div>
-                    Preview:
-                    {fileLoaded &&
-                        <div style={{ textAlign: 'left', padding: '1em' }} dangerouslySetInnerHTML={{ __html: activeNode?.data || 'ERROR no data found' }} />
-
-                    }
+                <div style={{ overflow: 'scroll' }}>
                     <button onClick={() => {
                         if (!rfInstance || !activeNode) return;
                         const domNode = document.querySelector('.react-flow');
@@ -302,39 +323,55 @@ export default function StoryEditor() {
                                     persist: false,
                                     vars: []
                                 },
-                                position:center,
+                                position: center,
                                 type: 'JournalEditNode'
                             }
                             return [...prev, newNode]
                         })
                     }}> Click to add as Journal Node </button>
+                    {fileLoaded &&
+                        <div style={{ textAlign: 'left', padding: '1em' }} dangerouslySetInnerHTML={{ __html: activeNode?.data || 'ERROR no data found' }} />
+                    }
                 </div>
             </div>
-            <ReactFlow style={{ color: '#242424ff', backgroundColor: '#616161ff' }}
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onNodeClick={(onNodeClick)}
-                onInit={setRfInstance}
-                onReconnect={onReconnect}
-                onReconnectStart={onReconnectStart}
-                onReconnectEnd={onReconnectEnd}
-                onConnect={onConnect}
-                snapToGrid
-                fitView
-                attributionPosition="top-right"
+            <div id='center-panel'
+                style={{
+                    position: 'relative',
+                    display: 'flex', width: '100%', height: '100%'
+                }}
             >
-                <Background />
-            </ReactFlow>
-            <div> right side
-                <input placeholder='Save Name' onChange={(e) => { setFlowKey(e.target.value) }} />
+                <ReactFlow style={{ color: '#242424ff', backgroundColor: '#616161ff' }}
+                    nodes={nodes}
+                    edges={edges}
+                    nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onNodeClick={(onNodeClick)}
+                    onInit={setRfInstance}
+                    onReconnect={onReconnect}
+                    onReconnectStart={onReconnectStart}
+                    onReconnectEnd={onReconnectEnd}
+                    onConnect={onConnect}
+                    snapToGrid
+                    fitView
+                    attributionPosition="top-right"
+                >
+                    <Background />
+                </ReactFlow>
+            </div>
+            <div id='right-panel' style={{ padding: '1em', textAlign: 'left', maxWidth:250 }}>
+                <label> Loaded File: {flowKey}</label>
+                <input placeholder='Save Name' defaultValue={'default'} onChange={(e) => {
+
+                    setFlowKey(e.target.value == '' ? 'default' : e.target.value)
+                }} />
                 <button onClick={onSave}>Save</button>
                 <button onClick={onRestore}>Load</button>
+                <input type="file" accept=".json" onChange={onImport} style={{ display: 'none' }} id="import-json" />
+                <button onClick={() => document.getElementById('import-json')?.click()}>Import File</button>
                 <button onClick={onExport}> click to export </button>
-                {localStorage.getItem(flowKey) ? <div> existing data exists!</div> : <div> no data found yet</div>
+                {localStorage.getItem(flowKey) ? <div> save with that name exists!</div> : <div> no data found for that save name</div>
                 }
 
             </div>

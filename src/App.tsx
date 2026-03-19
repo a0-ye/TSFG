@@ -2,8 +2,9 @@ import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import './App.css'
 import StoryViewer from './components/StoryViewer/StoryViewer'
 import StoryEditor from './components/StoryEditor/StoryEditor'
+import { ReactFlowProvider } from '@xyflow/react'
 
-function App(){
+function App() {
   return <>
     <BrowserRouter>
       <nav>
@@ -12,12 +13,16 @@ function App(){
       </nav>
 
       <Routes>
-        <Route path='/' element={<StoryViewer/>}/>
-        <Route path='/Editor' element={<StoryEditor/>}/>
+        <Route path='/' element={<StoryViewer />} />
+        <Route path='/Editor' element={
+          <ReactFlowProvider>
+            <StoryEditor />
+          </ReactFlowProvider>
+        } />
       </Routes>
-    
+
     </BrowserRouter>
-  
+
   </>
 }
 
