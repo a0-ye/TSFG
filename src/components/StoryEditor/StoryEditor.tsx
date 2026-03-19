@@ -9,312 +9,26 @@ import {
     addEdge,
     type Connection,
     type NodeMouseHandler,
-    Handle,
-    Position,
     MarkerType,
-    BaseEdge,
-    type EdgeProps,
-    EdgeLabelRenderer,
-    getSmoothStepPath,
     useReactFlow,
-    type NodeProps,
     type ReactFlowInstance,
-    NodeToolbar,
-    EdgeToolbar,
+    type Edge,
+    type Node,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
 import { renderAsync } from 'docx-preview';
-import { ERROR_NODE, type DataNode, } from '../NodeTypes';
+import { VarSetNode, DependencyEdge, JournalEditNode } from './FlowNodes';
 
-type varSet = { key: string, operation: string, value: string, persist: boolean }
 
-/**
- * Node that can have vars set. Stored in the node's data prop as vars: data.vars
- */
-function VarSetNode({ id, data, selected }: NodeProps) {
-    const { setNodes, deleteElements } = useReactFlow();
-    const currentVars = (data?.vars as Array<varSet>) || [];
-    /**
-     * updates the global node.data.vars
-     */
-    const updateNodeDataVars = (newVars: Array<varSet>) => {
-        setNodes((nds) => nds.map((node) => {
-            if (node.id === id) {
-                return { ...node, data: { ...node.data, vars: newVars } };
-            }
-            return node;
-        }));
-    };
-    const addVar = () => updateNodeDataVars([...currentVars, { key: '', operation: '=', value: '', persist: false }]);
-    const removeVar = (index: number) => {
-        updateNodeDataVars(currentVars.filter((_, i) => i !== index));
-    };
-    const updateVar = (index: number, field: string, value: string) => {
-        const next = [...currentVars];
-        next[index] = { ...next[index], [field]: value };
-        updateNodeDataVars(next);
-    };
-
-    const deleteNode = () => {
-        deleteElements({ nodes: [{ id }] });
-    }
-
-    const updateType = (newType: string) => {
-        setNodes((nds) => nds.map((node) => {
-            if (node.id === id) {
-                return { ...node, data: { ...node.data, type: newType } };
-            }
-            return node;
-        }));
-    }
-    /**
-     * transition: {
-            auto:false,
-            duration:1,
-            startDelay:0,
-            }
-     * 
-     */
-    const updateTransition = (field: string, newValue: string | boolean) => {
-        setNodes((nds) => nds.map((node) => {
-            if (node.id === id) {
-                // console.log(`updating node ${id} transition with ${field}:${newValue} `);
-                
-                const newTransition = {
-                    ...(node.data.transition as {
-                        auto: boolean,
-                        duration: number,
-                        startDelay: number,
-                    }), [field]: newValue
-                }
-                return { ...node, data: { ...node.data, transition: newTransition } };
-            }
-            return node;
-        }));
-    }
-    return (
-        <div id='VarSetNodeContainer'
-            style={{ backgroundColor: '#fff', borderRadius: '5px', padding: '5px', fontSize: 'small' }}>
-            <NodeToolbar
-                isVisible={selected}
-                position={Position.Right}
-                align={'center'}
-                style={{ alignContent: 'left' }}
-            >
-                <div id='Config Panel'
-                    style={{
-                        backgroundColor: '#59597cff', color: '#fff', borderRadius: '5px',
-                        width: '200px',
-                        minHeight: '100px'
-
-                    }}
-                >
-                    Config panel. Change Type, configure auto transition + delay & duration. Other options you might want
-                    <br />
-                    <input type="radio" name='type' id='narration' value={'narration'} defaultChecked
-                        onChange={(e) => updateType(e.target.value)}
-                    />
-                    <label htmlFor="narration">Narration</label>
-                    <input type="radio" name='type' id='action' value={'action'}
-                        onChange={(e) => updateType(e.target.value)}
-                    />
-                    <label htmlFor="action">Action</label>
-                    <br />
-                    <input id='doAuto' type='checkbox' onChange={(e) => updateTransition('auto', e.target.checked)}/>
-                    <label htmlFor='doAuto'  >Auto Transition?</label>
-                    <br />
-                    <span>duration</span>
-                    <input type='text' onChange={(e) => updateTransition('duration', e.target.value)}/>
-                    <span>startDelay</span>
-                    <input type='text'onChange={(e) => updateTransition('startDelay', e.target.value)} />
-
-                </div>
-                <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ Add Var</button>
-                <input type='color' /> // TODO change NODE COLOR!
-            </NodeToolbar>
-            <NodeToolbar
-                isVisible={selected}
-                position={Position.Left}
-                align={'center'}
-                style={{}}
-            >
-                <button onClick={deleteNode} style={{ fontSize: 'x-small', backgroundColor: '#ffa3a3ff' }}>Delete Node</button>
-            </NodeToolbar>
-            <label style={{ color: 'black', }}>{id}</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: 'black' }}>
-                {/* <label>Variables Set</label> */}
-                {currentVars.map((v, i) => (
-                    <div key={i} style={{ display: 'flex', gap: '1px' }}>
-                        <div >
-                            <label style={{ fontSize: 'xx-small' }}> persist? </label>
-                            <br />
-                            <input
-                                type='checkbox'
-                                name='persist'
-                                defaultChecked={v.persist}
-                                onChange={(e) => updateVar(i, 'persist', e.target.value)} />
-                        </div>
-                        <input
-                            className="nodrag"
-                            placeholder="Var"
-                            value={v.key}
-                            onChange={(e) => updateVar(i, 'key', e.target.value)}
-                            style={{ width: '60px', fontSize: 'xx-small' }}
-                        />
-                        <select
-                            id="opSelect"
-                            name="op"
-                            onChange={(e) => updateVar(i, 'operation', e.target.value)}
-                            defaultValue={v.operation}
-                        >
-                            <option value="=">=</option>
-                            <option value="+=">++</option>
-                            <option value="-=">--</option>
-                        </select>
-                        <input
-                            className="nodrag"
-                            placeholder="Value"
-                            value={v.value}
-                            onChange={(e) => updateVar(i, 'value', e.target.value)}
-                            style={{ width: '60px', fontSize: 'xx-small' }}
-                        />
-                        <button onClick={() => removeVar(i)}>X</button>
-                    </div>
-                ))}
-
-            </div>
-
-            <Handle type="target" position={Position.Top} />
-            <Handle type="source" position={Position.Bottom} />
-        </div>
-    );
-}
-
-type varDep = { key: string, operation: string, value: string }
-
-function DependencyEdge({ id, sourceX, sourceY, targetX, targetY, markerEnd, selected, data }: EdgeProps) {
-    const [edgePath, labelX, labelY] = getSmoothStepPath({
-        sourceX,
-        sourceY,
-        targetX,
-        targetY,
-    });
-    const { setEdges } = useReactFlow();
-
-    const currentVars = (data?.vars as Array<varDep>) || [];
-    const updateGlobal = (newVars: Array<varDep>) => {
-        setEdges((edges) => edges.map((edge) => {
-            if (edge.id === id) {
-                return { ...edge, data: { ...edge.data, vars: newVars } };
-            }
-            return edge;
-        }));
-    };
-
-    const addVar = () => updateGlobal([...currentVars, { key: '', operation: '==', value: '' }]);
-    const removeVar = (index: number) => {
-        updateGlobal(currentVars.filter((_, i) => i !== index));
-    };
-
-    const updateVar = (index: number, field: string, value: string) => {
-        const next = [...currentVars];
-        next[index] = { ...next[index], [field]: value };
-        updateGlobal(next);
-    };
-
-    const hasDependencies = currentVars.length > 0
-    return (
-        <>
-            <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} />
-            <EdgeToolbar
-                isVisible={selected}
-                edgeId={id}
-                x={labelX}
-                y={labelY}
-                // position={Position.Top}
-                // align={'center'}
-                style={{}}
-            >
-
-                <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ add Dependency</button>
-
-            </EdgeToolbar>
-            <EdgeLabelRenderer>
-                <div id='EdgeDependenciesContainer' style={{
-                    textAlign: 'left',
-                    transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-                    pointerEvents: 'all',
-                    width: 'min-content',
-                    fontSize: 'x-small',
-                }}>
-                    <div style={{
-                        display: 'flex', flexDirection: 'column', gap: '4px',
-                        backgroundColor: hasDependencies ? "#ffffffff" : 'transparent',
-                        borderRadius: 5, padding: '1em'
-                    }}>
-                        {hasDependencies && <label>Dependencies</label>}
-                        {currentVars.map((v, i) => (
-                            <div key={i} style={{ display: 'flex', gap: '2px' }}>
-                                <input
-                                    className="nodrag" // Prevents dragging node while typing
-                                    placeholder="Var"
-                                    value={v.key}
-                                    onChange={(e) => updateVar(i, 'key', e.target.value)}
-                                    style={{ width: '60px', fontSize: 'inherit' }}
-                                />
-                                <select
-                                    id="opSelect"
-                                    name="op"
-                                    onChange={(e) => updateVar(i, 'operation', e.target.value)}
-                                    defaultValue={v.operation}
-                                >
-                                    <option value="==">==</option>
-                                    <option value="<"> &#60; </option>
-                                    <option value="<=">&#60;= </option>
-                                    <option value=">">&#62;</option>
-                                    <option value=">=">&#62;=</option>
-                                </select>
-                                <input
-                                    className="nodrag"
-                                    placeholder="Value"
-                                    value={v.value}
-                                    onChange={(e) => updateVar(i, 'value', e.target.value)}
-                                    style={{ width: '60px', fontSize: 'inherit' }}
-                                />
-                                <button onClick={() => removeVar(i)} style={{ padding: '0 4px', cursor: 'pointer' }}>X</button>
-                            </div>
-                        ))}
-                    </div>
-
-                </div>
-            </EdgeLabelRenderer>
-        </>
-    );
-}
 
 const nodeTypes = {
-    VarSetNode: VarSetNode
+    VarSetNode: VarSetNode,
+    JournalEditNode: JournalEditNode
 }
 const edgeTypes = {
     DependencyEdge: DependencyEdge,
 };
-
-const initialNodes: {
-    id: string;
-    data: Record<string, unknown>;
-    position: {
-        x: number;
-        y: number;
-    };
-}[] = [];
-
-const initialEdges: {
-    id: string;
-    source: string;
-    target: string;
-    label: string;
-}[] = [];
 
 /**
  * id: 'edge-button',
@@ -342,18 +56,35 @@ const initialEdges: {
 
 export default function StoryEditor() {
     const edgeReconnectSuccessful = useRef(true);
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance<any, any> | null>(null);
 
+    const onConnect = useCallback((params: Connection) => {
+        setEdges((eds) => {
+            // 1. Look up the source node to see what "kind" of node is starting the connection
+            const sourceNode = nodes.find((node) => {return node.id === params.source});
 
-    const onConnect = useCallback((params: any) => setEdges((els) => addEdge({
-        ...params, markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 20,  // Explicitly set size to ensure it's not "zeroed out"
-            height: 20,
-        }, type: 'DependencyEdge'
-    }, els)), [],);
+            let edgeType = 'DependencyEdge';
+            let markerStyle = MarkerType.ArrowClosed;
+
+            // 3. Conditional Logic: If the source is your "Second Type", change the edge
+            if (sourceNode?.type === 'JournalEditNode') {
+                edgeType = 'default'; // Your other custom edge component
+                markerStyle = MarkerType.Arrow; // Maybe a different arrow head?
+            }
+            const newEdge: Edge = {
+                ...params,
+                id: `e${params.source}-${params.target}`,
+                type: edgeType,
+                markerEnd: { type: markerStyle },
+            };
+            return addEdge(
+                newEdge,
+                eds
+            );
+        });
+    }, [setEdges]);
     const onReconnectStart = useCallback(() => { edgeReconnectSuccessful.current = false; }, []);
     const onReconnect = useCallback((oldEdge: any, newConnection: Connection) => {
         edgeReconnectSuccessful.current = true;
@@ -372,31 +103,66 @@ export default function StoryEditor() {
         [],
     );
 
-    const flowKey = 'tfcg-test-key';
+    const [flowKey, setFlowKey] = useState('myKey')
     const onSave = useCallback(() => {
         if (rfInstance) {
+            if (localStorage.getItem(flowKey)) {
+                localStorage.removeItem(flowKey);
+            }
             const flow = rfInstance.toObject();
             localStorage.setItem(flowKey, JSON.stringify(flow));
+        } else {
+            console.log('no rf instance?');
+
         }
-    }, [rfInstance]);
+    }, [rfInstance, flowKey]);
 
     const onRestore = useCallback(() => {
+        if (!localStorage.getItem(flowKey)) {
+            alert(`save data ${flowKey} not found!`)
+            return
+        }
         const restoreFlow = async () => {
             const flow = JSON.parse(localStorage.getItem(flowKey) || '');
 
             if (flow) {
                 // const { x = 0, y = 0, zoom = 1 } = flow.viewport;
+                console.log(flow);
+
                 setNodes(flow.nodes || []);
                 setEdges(flow.edges || []);
             }
         };
 
         restoreFlow();
-    }, [setNodes,]);
+    }, [setNodes, flowKey]);
+
+    const onExport = () => {
+        const saveData = localStorage.getItem(flowKey);
+
+        if (!saveData) {
+            alert("No data found!");
+            return;
+        }
+        const blob = new Blob([saveData], { type: 'application/json' });
+
+        // 3. Create a hidden link and click it programmatically
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${flowKey}${new Date().toISOString().slice(0, 10)}.json`;
+
+        document.body.appendChild(link);
+        link.click();
+
+        // 4. Cleanup
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
 
 
     const [fileLoaded, setFileLoaded] = useState(false)
-    const [docxNodes, setDocxNodes] = useState<DataNode[]>([]);
+    const [docxNodes, setDocxNodes] = useState<any[]>([]);
     const [selectedDocxNodeId, setSelectedDocxNodeId] = useState<string | null>(null);
     const activeNode = docxNodes.find(n => n.id === selectedDocxNodeId);
     const loadStory = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -427,8 +193,7 @@ export default function StoryEditor() {
                     Array.from(row.cells).map(cell => cell.innerHTML)[0]
                 );
 
-                const output: DataNode = {
-                    ...ERROR_NODE,  // if we cant find anything its just an error
+                const output = {
                     id: rawID,
                     data: contentData,
                     rowCount: rows.length,
@@ -498,7 +263,7 @@ export default function StoryEditor() {
                                 data: {
                                     label: activeNode?.id || 'ERROR',
                                     content: [...activeNode?.data || ''],   // create a shallow copy of the HTML data array
-                                    type: 'narration', // default narration
+                                    type: 'narration', // default narration. This type is the data portion for story rendering vs the type for ReactFlow
                                     transition: {
                                         auto: false,
                                         duration: 1,
@@ -511,6 +276,20 @@ export default function StoryEditor() {
                             return [...prev, newNode]
                         })
                     }}> Click to add as VarSetNode </button>
+                    <button onClick={() => {
+                        setNodes((prev) => {
+                            const newNode = {
+                                id: activeNode?.id || 'ERROR',
+                                data: {
+                                    label: activeNode?.id || 'ERROR',
+                                    content: [...activeNode?.data || ''],   // create a shallow copy of the HTML data array
+                                },
+                                position: { x: 250, y: 0 },
+                                type: 'JournalEditNode'
+                            }
+                            return [...prev, newNode]
+                        })
+                    }}> Click to add as Journal Node </button>
                 </div>
             </div>
             <ReactFlow style={{ color: '#242424ff', backgroundColor: '#616161ff' }}
@@ -533,12 +312,10 @@ export default function StoryEditor() {
                 <Background />
             </ReactFlow>
             <div> right side
-                <button onClick={() => {
-                    console.log(nodes, edges);
-                }}> click to export </button>
-
+                <input placeholder='Save Name' onChange={(e) => { setFlowKey(e.target.value) }} />
                 <button onClick={onSave}>Save</button>
                 <button onClick={onRestore}>Load</button>
+                <button onClick={onExport}> click to export </button>
                 {localStorage.getItem(flowKey) ? <div> existing data exists!</div> : <div> no data found yet</div>
                 }
 

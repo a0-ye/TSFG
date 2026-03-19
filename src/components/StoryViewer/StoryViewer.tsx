@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 
-import { renderAsync } from 'docx-preview'
-import JSZip from 'jszip'
-import Journal from '../Journal/Journal'
-import { type AllNodes, type JournalNode, type DataNode, ERROR_NODE } from '../NodeTypes'
+import { type DataEdge, type DataNode, type JournalNode, } from '../ViewerTypes'
 import PassageBox from '../PassageBox/PassageBox'
-import type { FlagValue } from '../utils'
+import { castValue, type dataVars, type FlagValue } from '../utils'
 
 
 
@@ -26,8 +23,9 @@ export default function StoryViewer() {
         })
     }
     const [fileLoaded, setFileLoaded] = useState(false)
-    const [nodeMap, setNodeMap] = useState(new Map<string, AllNodes>()) // A map containing all of the passages as id:node key:val
-    const [journalMap, setJournalMap] = useState(new Map<string, JournalNode>()) // map of all journal entries as id:node
+    const [nodeMap, setNodeMap] = useState(new Map<string, DataNode>()) // A map containing all narrative and action nodes. id:{nodedata}
+    const [journalMap, setJournalMap] = useState(new Map<string, JournalNode>()) // map of all journal entries. id:{nodedata}
+    const [edgeMap, setEdgeMap] = useState(new Map<string, DataEdge[]>()) // 
 
     const [flags, setFlags] = useState<Record<string, FlagValue>>({})
     /**
@@ -35,14 +33,51 @@ export default function StoryViewer() {
    * should not contain any operators since this is a flat value update
    * @param newFlags JS object of string: string | number | boolean. 
    */
-    function updateFlags(newFlags: Record<string, FlagValue>) {
-        setFlags((prev) => {
-            const newObj = { ...prev, ...newFlags }
-            console.log("Updated Flags", newObj);
-            return newObj
-        });
+    const updateFlags = (
+        vars: dataVars[]
+    ): void => {
+        (vars || [] ).forEach((entry) => {
+            const key = entry.key
+            const operation = entry.operation
+            const incomingValue = entry.value
+            const newValue = castValue(incomingValue);
+
+            // initialize if it doesn't exist
+            if (!(key in flags)) {
+                console.log(`Initializing ${key} with ${newValue}`);
+                flags[key] = newValue;
+                if (operation === '=') return;
+            }
+
+            const currentValue = flags[key];
+            console.log(`Updating ${key}: ${currentValue} -> ${operation} ${newValue}`);
+
+            try {
+                switch (operation) {
+                    case '=':
+                        flags[key] = newValue;
+                        break;
+                    case '+=':
+                        flags[key] = ((currentValue as number) || 0) + (newValue as number);
+                        break;
+                    case '!':
+                        flags[key] = !currentValue;
+                        break;
+                    case '-=':
+                        flags[key] = ((currentValue as number) || 0) - (newValue as number);
+                        break;
+                    default:
+                        console.warn(`Unknown operation: ${operation}`);
+                }
+            } catch (error) {
+                console.error(`Bad Variable Update: ${key}: ${currentValue} -> ${operation} ${newValue}`, error);
+
+            }
+        })
 
     }
+
+
     const [displayedJournalEntries, setDisplayedJournalEntries] = useState<JournalNode[]>([])    // list of nodes. should be based on groupID used to keep track of chronological entries
 
     /**
@@ -71,68 +106,46 @@ export default function StoryViewer() {
      * Extracts the story data from the zip file, and loads it into the global passageMap
      */
     const loadStory = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const ghostDiv: HTMLElement = document.createElement('div');  // temp, used to extract the story content from docx
-        const file = event.target.files?.[0];
+        const file = event.target.files?.[0];   // JSON from editor
         if (!file) { return; }
         try {
-            // Extract json and docx from zip
-            const zip = await JSZip.loadAsync(file);
-            const jsonFile = zip.filter((path, _) => path.endsWith(".json"))[0];
-            const jsonData = jsonFile ? await jsonFile.async("string") : "{}";
-            const nodeData: Record<string, any> = JSON.parse(jsonData);
+            const jsonData = JSON.parse(await file.text())
+            // console.log(jsonData);
+            const allNodes: Array<any> = jsonData.nodes    // array of node objects Fix typing later
+            const edges: Array<any> = jsonData.edges
+            console.log(allNodes, edges)
+            // Object.entries(jsonData)
 
-
-            const docxFile = zip.filter((path, _) => path.endsWith(".docx"))[0];
-            if (!docxFile) {
-                console.error("ERRO ON FILE LOAD: No .docx file found in the package");
-            }
-            const docxBlob = docxFile ? await docxFile.async("blob") : null;
-
-            // load docx into ghostDiv
-            await renderAsync(docxBlob, ghostDiv);
-
-            // read from the ghostDiv
-            const tables = ghostDiv.querySelectorAll('article table');
-            const nodeMap = new Map()
-            const journalMap = new Map<string, JournalNode>()
-
-            // Everything is based on the Tables get created first, so if there is JSON data for a non-existent table in the DOCX, no DataNode will ever be created
-            const tableNodes = Array.from(tables).map((table, index) => {
-                const htmlTable = table as HTMLTableElement;
-                const rows = Array.from(htmlTable.rows);
-                const rawID = rows[0].cells[0].textContent?.trim() || `noIDError|Table-${index}`;
-
-
-                // slice from index 1 to capture everything after the ID row
-                const contentData = rows.slice(1).map(row =>
-                    Array.from(row.cells).map(cell => cell.innerHTML)[0]
-                );
-                const specificNodeData = nodeData.find((node: any) => node.id == rawID); // TODO: fix typing here
-                if (specificNodeData?.type == '2') {
-                    if (rows[2].cells[0].textContent.trim() == '') { contentData[1] = contentData[0] } // if the text content is empty, copy from the other row
-                    // other stuff maybe          
+            const narrativeMap = new Map<string, any>(allNodes.filter((node) => { return node.type === 'VarSetNode' }).map(
+                (node: any) => {
+                    const newDataNode: DataNode = {
+                        id: node.id,
+                        type: node.data.type,    // narrative or action
+                        data: node.data
+                    }
+                    return [node.id, newDataNode]
+                }));
+            const journalMap = new Map<string, JournalNode>(allNodes.filter((node) => { return node.type === 'JournalEditNode' }).map(
+                (node: any) => { return [node.id, node] })
+            );
+            // edge map is based on sources. get(sourceID) yields an array of Edge objects
+            const edgeMap = new Map<string, DataEdge[]>()
+            edges.forEach((edge) => {
+                const newEdge: DataEdge = {
+                    id: edge.id,
+                    source: edge.source,
+                    target: edge.target,
+                    data: edge.data
                 }
+                edgeMap.set(edge.source, [...edgeMap.get(edge.source) || [], newEdge])
+            })
 
-                const output: DataNode = {
-                    ...ERROR_NODE,  // if we cant find anything its just an error
-                    id: rawID,
-                    data: contentData,
-                    rowCount: rows.length,
-                    ...specificNodeData // overwrite the default errors for type & next
-                };
-                nodeMap.set(rawID, output)
-                if (specificNodeData.type == '4') {  // add as only journal node
-                    journalMap.set(rawID, output as JournalNode)
-                    // console.log(journalMap.get(rawID));
-                }
-                return output;
-            });
-            setNodeMap(nodeMap)
+            setNodeMap(narrativeMap)
             setJournalMap(journalMap)
-            addPassage(tableNodes[0].id)  // DEBUG AUTO ADD THE FIRST ONE
+            setEdgeMap(edgeMap)
+            addPassage('0-001')  // DEBUG AUTO ADD THE FIRST ONE NEED TO FIX ==========================================================================================================
         } catch (error) {
             console.error("Failed to load story nodes from DOCX ", error);
-
         }
 
         setFileLoaded(true)
@@ -149,13 +162,13 @@ export default function StoryViewer() {
 
     return (
         <>
-            <Journal
+            {/* <Journal
                 flags={flags}
                 setFlags={setFlags}
                 displayedJournalEntries={displayedJournalEntries}
                 setDisplayedJournalEntries={setDisplayedJournalEntries}
                 journalMap={journalMap}
-            ></Journal>
+            ></Journal> */}
 
             <div id='triColSplit' style={{ display: 'grid', gridTemplateColumns: ' 15vw 70vw 15vw ' }}>
                 <div id='leftContent' className='sideCol' style={{}}></div>
@@ -174,7 +187,7 @@ export default function StoryViewer() {
                         <p>
                             Upload your .zip file to begin. It should contain both the .json and the .docx
                         </p>
-                        <input type='file' accept='.zip' onChange={loadStory}></input>
+                        <input type='file' accept='.json' onChange={loadStory}></input>
                     </div>}
 
                     {
@@ -191,6 +204,7 @@ export default function StoryViewer() {
                                 <PassageBox
                                     passageID={passageID}
                                     passageMap={nodeMap}
+                                    edgeMap={edgeMap}
                                     addPassage={addPassage}
                                     index={index}
                                     flags={flags}

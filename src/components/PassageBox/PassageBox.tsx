@@ -1,14 +1,15 @@
 import { useState } from "react"
 import { motion } from "motion/react"
-import { ERROR_ACTION_NODE,ERROR_STORY_NODE, type ActionNode, type AllNodes,  type StoryNode } from "../NodeTypes"
 import { evaluateDependencies, type FlagValue } from "../utils";
+import { ERROR_DATANODE, type DataEdge, type DataNode } from "../ViewerTypes";
 
 
 
 
 interface PassageBoxProps {
     passageID: string,
-    passageMap: Map<string, AllNodes>,    // map of ALL story content
+    passageMap: Map<string, DataNode>,    // map of ALL story content
+    edgeMap: Map<string, DataEdge[]>,
     addPassage: Function,
     index: number,
 
@@ -24,95 +25,119 @@ const greyedActionStyle = '#5c5c5cff'
 /**
  * 
  * Passage box used to display a passage's text content, and actions/decisions if there any to be made.
- * Looks up the data to be used from the passage map, and 
  * 
- * if the type of this node is branch/decision (from json info), load the next nodes as actions in this passage box.
+ * Check nodeMap[passageID] for my data. 
  */
 export default function PassageBox(props: PassageBoxProps) {
     const passageID = props.passageID
     const passageMap = props.passageMap
-    const passageNode: StoryNode = passageMap.get(passageID) as StoryNode || ERROR_STORY_NODE
+    const passageNode: DataNode = passageMap.get(passageID) || ERROR_DATANODE
 
     const [lockoutChoices, setLockoutChoices] = useState(false)
     const [choiceIndex, setChoiceIndex] = useState(Infinity)
 
+    /**
+     * A list of Target Nodes that connect to potential next nodes.
+     */
+    const [next] = useState<DataNode[]>(() => {
+        props.updateFlags(passageNode.data.vars)    // Set the variables here, since this only gets called once as a little hack :3
 
-    // gets set once on initialization
-    const [visibleActionIDs] = useState<string[]>(() => {
-        const tempActions: string[] = [];
-        if (passageNode?.type === '1') {
-            tempActions.push(...(passageNode?.next || []));
-        }
-        return tempActions.filter((actionID) => {
-            const node = props.passageMap.get(actionID) || ERROR_ACTION_NODE;
-            return evaluateDependencies(node as ActionNode, props.flags);
-        });
+        return (props.edgeMap.get(passageID) || []).filter((edge: DataEdge) => {
+            return evaluateDependencies(edge.data?.vars || [], props.flags)
+        }).map((edge: DataEdge) => {
+            return passageMap.get(edge.target) || ERROR_DATANODE
+        })
+
+
     });
 
     return <>
         <motion.div key={props.index}
-            style={{ position: 'relative', 
+            style={{
+                position: 'relative',
                 // margin: '50px', 
                 // border: 'solid 2px white', 
                 // backgroundColor: '#2e2c28',
-                textAlign:'left', padding:'1em',
+                textAlign: 'left', padding: '1em',
             }}
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{
+                duration: Number(passageNode.data.transition?.duration) || 0,
+                delay: Number(passageNode.data.transition?.startDelay) || 0,
+            }}
         >
 
-            <div dangerouslySetInnerHTML={{ __html: passageNode?.data[0] || `ERROR: no node found for ID ${passageID}` }}></div>
+            <div dangerouslySetInnerHTML={{ __html: passageNode.data.content || `ERROR: no node found for ID ${passageID}` }}></div>
             <div id="actionBox"
-            style={{
-                // backgroundColor: lockoutChoices?  'transparent' : "#70707052"
-            }}>
-                {visibleActionIDs.length > 0 ? visibleActionIDs.map((actionID, index) => {
-                    return <>
-                        <button id={actionID} key={actionID}
-                            style={{
-                                backgroundColor: "transparent",
-                                color: lockoutChoices ?  ((choiceIndex == index )? "inherit" : greyedActionStyle) : neutralActionStyle,
-                                pointerEvents: lockoutChoices ? "none" : 'auto',
-                            }}
-                            dangerouslySetInnerHTML={
-                                {
-                                    __html: choiceIndex == index ? props.passageMap.get(actionID)?.data[1] || `ACTION ERROR: no text for ID ${actionID}[1]`
-                                        : props.passageMap.get(actionID)?.data[0] || `ACTION ERROR: no text for ID ${actionID}[0]`
-                                }
-                            }
-                            onClick={() => {
-                                const thisNode = (passageMap.get(actionID) as ActionNode)
-                                setLockoutChoices(true)
-                                setChoiceIndex(index)
-                                props.addPassage(thisNode.next[0]) // Append next Passage ID to the global chain if clicked
-                                props.updateFlags(thisNode.varset)    // Update flags directly from node varset
-                            }}>
+                style={{
+                    // backgroundColor: lockoutChoices?  'transparent' : "#70707052"
+                }}>
+                {passageNode.data.transition.auto ? <></> :
 
-                        </button>
-                        <span id="DEBUG" style={{ fontSize: '10px', color: '#68c7caff', }}>
-                            ID: {passageMap.get(actionID)?.id} | next: {(passageMap.get(actionID) as ActionNode)?.next}
-                        </span>
-                        <br/>
-                    </>
-                }) : <button
-                    style={{ 
-                        backgroundColor: 'transparent', 
-                        color: choiceIndex == Infinity ? neutralActionStyle : 'inherit', 
-                        pointerEvents: lockoutChoices ? "none" : 'auto', 
-                        // opacity: lockoutChoices ? 0 : 1,
-                        display: lockoutChoices ? 'none' : 'auto',
-                    }}
-                    onClick={() => {
-                        props.addPassage(passageNode?.next[0])
-                        setChoiceIndex(0)
-                        setLockoutChoices(true)
-                    }}> advance... </button>
-                }
+                    next.map((node, index) => {
+                        if (node.type == 'action') {
+                            return <>
+                                <button id={node.id + '-button'} key={node.id + '-button'}
+                                    style={{
+                                        backgroundColor: "transparent",
+                                        color: lockoutChoices ? ((choiceIndex == index) ? "inherit" : greyedActionStyle) : neutralActionStyle,
+                                        pointerEvents: lockoutChoices ? "none" : 'auto',
+                                    }}
+                                    dangerouslySetInnerHTML={
+                                        {
+                                            __html: choiceIndex == index ? node.data.content[1] || `ACTION ERROR: no text for ID ${node.id}[1]`
+                                                : node.data.content[0] || `ACTION ERROR: no text for ID ${node.id}[0]`
+                                        }
+                                    }
+                                    onClick={() => {
+                                        setLockoutChoices(true);
+                                        setChoiceIndex(index);
+                                        (props.edgeMap.get(node.id) || []).forEach((nextEdge) => {
+                                            console.log('action selected!', passageMap.get(nextEdge.target));
+                                            props.addPassage((passageMap.get(nextEdge.target)?.id || ERROR_DATANODE.id)) // Append next Passage ID to the global chain if clicked
+                                        });
+                                        props.updateFlags(node.data.vars)    // Update flags directly from node varset
+                                    }}>
+
+                                </button>
+                                {/* <span id="DEBUG" style={{ fontSize: '10px', color: '#68c7caff', }}>
+                                ID: {passageMap.get(actionID)?.id} | next: {(passageMap.get(actionID) as ActionNode)?.next}
+                            </span> */}
+                                <br />
+                            </>
+                        }
+                        else if (node.type == 'narration') {
+                            // make a button that adds it
+                            return <>
+                                <button
+                                    id={node.id + '-default-button'}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: choiceIndex == Infinity ? neutralActionStyle : 'inherit',
+                                        pointerEvents: lockoutChoices ? "none" : 'auto',
+                                        // opacity: lockoutChoices ? 0 : 1,
+                                        display: lockoutChoices ? 'none' : 'auto',
+                                    }}
+                                    onClick={() => {
+                                        props.addPassage(node.id)
+                                        setChoiceIndex(0)
+                                        setLockoutChoices(true)
+                                    }}> &#62;&#62;&#62; ...({node.id}) </button>
+                            </>
+                        }
+
+
+                        return <>
+                            <div>ERROR. Got a weird type of node</div>
+                        </>
+                    })}
+
+                { }
             </div>
-            <span style={{ fontSize: '10px', color: '#68c7caff', position: 'absolute', top: '2px', right: '5px' }}>
+            {/* <span style={{ fontSize: '10px', color: '#68c7caff', position: 'absolute', top: '2px', right: '5px' }}>
                 DEBUG INFO|   ID: {passageNode?.id} Type: {passageNode?.type} | next: {passageNode?.next}
-            </span>
+            </span> */}
         </motion.div>
 
 
