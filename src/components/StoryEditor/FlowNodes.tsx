@@ -59,17 +59,17 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
                 isVisible={selected}
                 position={Position.Right}
                 align={'center'}
-                style={{ alignContent: 'left' }}
+                style={{ alignContent: 'left', }}
             >
                 <div id='Config Panel'
                     style={{
                         backgroundColor: '#59597cff', color: '#fff', borderRadius: '5px',
                         width: '200px',
-                        minHeight: '100px'
+                        minHeight: '100px',
+                        padding: '0.25em'
 
                     }}
                 >
-                    Config panel. Change Type, configure auto transition + delay & duration. Other options you might want
                     <br />
                     <input type="radio" name='type' id='narration' value={'narration'} defaultChecked={data.type === 'narration'}
                         onChange={(e) => {
@@ -103,12 +103,11 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
                     <span>startDelay</span>
                     <input key="input-startDelay" type='number' defaultValue={dataTransition.startDelay} onChange={(e) => updateTransition('startDelay', e.target.value)} />
 
-
+                    <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ Add Var to Set</button>
+                    <input type='color' defaultValue={nodeColor} value={nodeColor} onChange={(e) => {
+                        setNodeColor(e.target.value)
+                    }} />
                 </div>
-                <button onClick={addVar} style={{ fontSize: 'xx-small' }}>+ Add Var</button>
-                <input type='color' defaultValue={nodeColor} value={nodeColor} onChange={(e) => {
-                    setNodeColor(e.target.value)
-                }} /> Node Color
             </NodeToolbar>
             <NodeToolbar
                 isVisible={selected}
