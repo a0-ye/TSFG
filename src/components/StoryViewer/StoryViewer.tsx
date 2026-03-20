@@ -17,10 +17,12 @@ export default function StoryViewer() {
      */
 
 
-    const [displayedPassages, setDisplayedPassages] = useState<string[]>([])  // An array of passage IDs to display
-    const addPassage = (passageID: string) => {
+    const [displayedPassages, setDisplayedPassages] = useState<DataNode[]>([])  // An array of DataNodes to display
+    const addPassage = (node: DataNode) => {
         setDisplayedPassages((prevPassages) => {
-            return [...prevPassages, passageID]
+            console.log('adding', node);
+            
+            return [...prevPassages, node]
         })
     }
     const [fileLoaded, setFileLoaded] = useState(false)
@@ -112,7 +114,6 @@ export default function StoryViewer() {
         try {
             const jsonData = JSON.parse(await file.text())
 
-            console.log(jsonData);
             const allNodes: Array<any> = jsonData.nodes    // array of node objects Fix typing later
             const edges: Array<any> = jsonData.edges
             console.log(allNodes, edges)
@@ -120,7 +121,7 @@ export default function StoryViewer() {
 
             const narrativeMap = new Map<string, any>(allNodes.filter((node) => { return node.type === 'VarSetNode' }).map(
                 (node: any) => {
-                    console.log(node);
+                    // console.log(node);
 
                     const filteredVars = (node.data.vars || []).filter(({ key, operation, value }: { key: string, operation: string, value: string }) => {
                         return key != '' && operation != '' && value != ''
@@ -176,8 +177,7 @@ export default function StoryViewer() {
                 jNode.data['vars'] = filteredVars
             });
             setJournalMap(journalMap)
-            
-            addPassage((edgeMap.get('START') as DataEdge[])[0].target ) // Start should be guraranteed to exist
+            addPassage( narrativeMap.get((edgeMap.get('START') as DataEdge[])[0].target) as DataNode ) // Start should be guraranteed to exist
         } catch (error) {
             console.error("Failed to load story nodes from DOCX ", error);
         }
@@ -229,14 +229,14 @@ export default function StoryViewer() {
                     }
 
                     <div>
-                        {displayedPassages.map((passageID, index) => (
+                        {displayedPassages.map((node, index) => (
                             <>
                                 {
                                     // should pass it:
                                     // The ID, the Json data, the passage map. The intent is that inside, it looks up passage content on its own.d
                                 }
                                 <PassageBox
-                                    passageID={passageID}
+                                    node={node}
                                     passageMap={nodeMap}
                                     edgeMap={edgeMap}
                                     addPassage={addPassage}

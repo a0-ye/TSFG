@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react"
 import { motion } from "motion/react"
-import { evaluateDependencies, type FlagValue } from "../utils";
+import { evaluateDependencies, type dataVars, type FlagValue } from "../utils";
 import { ERROR_DATANODE, type DataEdge, type DataNode } from "../ViewerTypes";
 
 
 
 
 interface PassageBoxProps {
-    passageID: string,
+    node: DataNode,
     passageMap: Map<string, DataNode>,    // map of ALL story content
     edgeMap: Map<string, DataEdge[]>,
-    addPassage: Function,
+    addPassage: (node: DataNode) => void,
     index: number,
 
     flags: Record<string, FlagValue>
-    updateFlags: Function,
+    updateFlags: (vars: dataVars[]) => void,
 }
 
 
@@ -29,26 +29,34 @@ const greyedActionStyle = '#5c5c5cff'
  * Check nodeMap[passageID] for my data. 
  */
 export default function PassageBox(props: PassageBoxProps) {
-    const passageID = props.passageID
     const passageMap = props.passageMap
-    const passageNode: DataNode = passageMap.get(passageID) || ERROR_DATANODE
+    const passageNode: DataNode = props.node
 
     const [lockoutChoices, setLockoutChoices] = useState(false)
     const [choiceIndex, setChoiceIndex] = useState(Infinity)
 
     /**
-     * A list of Target Nodes that connect to potential next nodes.
+     * 
+     * @param dataNodeID id to get met next (met dependencies, has an edge to a next node)
+     * @returns 
      */
-    const [next] = useState<DataNode[]>(() => {
-        props.updateFlags(passageNode.data.vars)    // Set the variables here, since this only gets called once as a little hack :3
-
-        return (props.edgeMap.get(passageID) || []).filter((edge: DataEdge) => {
+    const getMetNext = (dataNodeID: string): DataNode[] => {
+        return (props.edgeMap.get(dataNodeID) || []).filter((edge: DataEdge) => {
             return evaluateDependencies(edge.data?.vars || [], props.flags)
         }).map((edge: DataEdge) => {
             return passageMap.get(edge.target) || ERROR_DATANODE
         })
-
-
+    }
+    /**
+     * A list of Target Nodes that connect to potential next nodes.
+     */
+    const [next] = useState<DataNode[]>(() => {
+        if (passageNode.type === 'ghost') {
+            // if we made a ghost, just use what was given.
+            return passageNode.data.ghostActions as DataNode[]
+        }
+        props.updateFlags(passageNode.data.vars || [])    // Set the variables here, since this only gets called once as a little hack :3
+        return getMetNext(passageNode.id)
     });
 
     useEffect(() => {
@@ -59,13 +67,11 @@ export default function PassageBox(props: PassageBoxProps) {
             // for every narration passage, load all of them.
             // 2. Set the timer
             const timer = setTimeout(() => {
-                console.log(`delaying adding new passages for ${delayAuto} seconds`);
-                
-                const narrations = next.filter((node)=>{
+                const narrations = next.filter((node) => {
                     return node.type == 'narration'
                 })
-                narrations.forEach((node)=>props.addPassage(node.id))
-                
+                narrations.forEach((node) => props.addPassage(node))
+
             }, (Number(delayAuto) || 0.5) * 1000);
 
             // 3. Cleanup: If the user clicks something else or leaves the node, 
@@ -91,7 +97,7 @@ export default function PassageBox(props: PassageBoxProps) {
             }}
         >
 
-            <div dangerouslySetInnerHTML={{ __html: passageNode.data.content || `ERROR: no node found for ID ${passageID}` }}></div>
+            <div dangerouslySetInnerHTML={{ __html: passageNode.data.content || `ERROR: no node found for ID ${passageNode.id}` }}></div>
             <div id="actionBox"
                 style={{
                     // backgroundColor: lockoutChoices?  'transparent' : "#70707052"
@@ -102,6 +108,7 @@ export default function PassageBox(props: PassageBoxProps) {
 
                     next.map((node, index) => {
                         if (node.type == 'action') {
+                            
                             return <>
                                 <button id={node.id + '-button'} key={node.id + '-button'}
                                     style={{
@@ -118,11 +125,31 @@ export default function PassageBox(props: PassageBoxProps) {
                                     onClick={() => {
                                         setLockoutChoices(true);
                                         setChoiceIndex(index);
-                                        (props.edgeMap.get(node.id) || []).forEach((nextEdge) => {
-                                            console.log('action selected!', passageMap.get(nextEdge.target));
-                                            props.addPassage((passageMap.get(nextEdge.target)?.id || ERROR_DATANODE.id)) // Append next Passage ID to the global chain if clicked
-                                        });
-                                        props.updateFlags(node.data.vars)    // Update flags directly from node varset
+                                        /**
+                                         * Assemble all next Action nodes. package them into a ghost Passage.
+                                         * 
+                                         */
+                                        const allNext = getMetNext(node.id); // list of all next for this action. Can include actions
+                                        const narrativeNext = allNext.filter((node) => { return node.type === 'narration' });
+                                        narrativeNext.forEach((node) => {
+                                            props.addPassage(node)
+                                        })
+                                        const actionNext = allNext.filter((node) => { return node.type === 'action' });
+                                        if (actionNext.length > 0) {
+                                            const ghostpassage: DataNode = {
+                                                id: `ghost-${node.id}`,
+                                                type: 'ghost',
+                                                data: {
+                                                    content: [],
+                                                    type: 'ghost',
+                                                    // Inject the children directly here!
+                                                    ghostActions: actionNext,
+                                                    transition: { auto: false, delayAuto: 0, duration: 1, startDelay: 0 }
+                                                },
+                                            };
+                                            props.addPassage(ghostpassage);
+                                        }
+                                        props.updateFlags(node.data.vars || [])    // Update flags directly from node varset
                                     }}>
 
                                 </button>
@@ -145,7 +172,7 @@ export default function PassageBox(props: PassageBoxProps) {
                                         display: lockoutChoices ? 'none' : 'auto',
                                     }}
                                     onClick={() => {
-                                        props.addPassage(node.id)
+                                        props.addPassage(node)
                                         setChoiceIndex(0)
                                         setLockoutChoices(true)
                                     }}> &#62;&#62;&#62; ...({node.id}) </button>

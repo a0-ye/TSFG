@@ -37,6 +37,7 @@ export interface DataNode {
             duration:string|number,
             startDelay:string|number,
         },
+        ghostActions?:DataNode[]
     }, 
 };
 

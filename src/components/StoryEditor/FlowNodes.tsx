@@ -1,8 +1,6 @@
 import { type NodeProps, useReactFlow, NodeToolbar, Position, Handle, type EdgeProps, getSmoothStepPath, BaseEdge, EdgeToolbar, EdgeLabelRenderer } from "@xyflow/react";
 import { useState } from "react";
 
-
-
 type varSet = { key: string, operation: string, value: string, persist: boolean }
 type Transition = {
     auto: boolean,
@@ -20,17 +18,11 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
 
     const narrationColor = '#fff'
     const actionColor = '#b2ffe8ff'
-    const [nodeColor, setNodeColor] = useState(narrationColor)
+    const [nodeColor, setNodeColor] = useState(data.type === 'narration' ? narrationColor : actionColor)
     /**
      * updates the global node.data.vars
      */
     const updateNodeDataVars = (newVars: Array<varSet>) => {
-        // setNodes((nds) => nds.map((node) => {
-        //     if (node.id === id) {
-        //         return { ...node, data: { ...node.data, vars: newVars } };
-        //     }
-        //     return node;
-        // }));
         updateNodeData(id, { vars: newVars })
     };
     const addVar = () => updateNodeDataVars([...currentVars, { key: '', operation: '=', value: '', persist: false }]);
@@ -49,12 +41,6 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
 
     const updateType = (newType: string) => {
         updateNodeData(id, { type: newType })
-        // setNodes((nds) => nds.map((node) => {
-        //     if (node.id === id) {
-        //         return { ...node, data: { ...node.data, type: newType } };
-        //     }
-        //     return node;
-        // }));
     }
     const updateTransition = (field: string, newValue: string | boolean) => {
         const newTransition = {
@@ -63,17 +49,6 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
         console.log(`updating transition ${field} = ${newValue}`);
 
         updateNodeData(id, { transition: newTransition })
-        // setNodes((nds) => nds.map((node) => {
-        //     if (node.id === id) {
-        //         // console.log(`updating node ${id} transition with ${field}:${newValue} `);
-
-        //         const newTransition = {
-        //             ...(node.data.transition as Transition), [field]: newValue
-        //         }
-        //         return { ...node, data: { ...node.data, transition: newTransition } };
-        //     }
-        //     return node;
-        // }));
     }
 
     const dataTransition = data.transition as Transition
@@ -96,14 +71,14 @@ export function VarSetNode({ id, data, selected }: NodeProps) {
                 >
                     Config panel. Change Type, configure auto transition + delay & duration. Other options you might want
                     <br />
-                    <input type="radio" name='type' id='narration' value={'narration'} defaultChecked
+                    <input type="radio" name='type' id='narration' value={'narration'} defaultChecked={data.type === 'narration'}
                         onChange={(e) => {
                             updateType(e.target.value)
                             setNodeColor(narrationColor)
                         }}
                     />
                     <label htmlFor="narration">Narration</label>
-                    <input type="radio" name='type' id='action' value={'action'}
+                    <input type="radio" name='type' id='action' value={'action'} defaultChecked={data.type === 'action'}
                         onChange={(e) => {
                             updateType(e.target.value)
                             setNodeColor(actionColor)

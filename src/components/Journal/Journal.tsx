@@ -48,7 +48,7 @@ export default function Journal(props: journalProps) {
         const met = allJournalNodes.filter((node: JournalNode) => {
             return evaluateDependencies(node.data.vars || [], props.flags)
         });
-        console.log('met', met);
+        // console.log('met', met);
 
         // keep only the highest priority node per GroupID. map of groupID:node
         const groupMap = new Map<string, JournalNode>();
@@ -75,7 +75,7 @@ export default function Journal(props: journalProps) {
                     updatedEntries.push(node)
                 }
             })
-            console.log('displayedJournalEntries:', updatedEntries);
+            // console.log('displayedJournalEntries:', updatedEntries);
             return updatedEntries
         })
 
